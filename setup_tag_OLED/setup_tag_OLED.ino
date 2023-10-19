@@ -12,10 +12,12 @@
 #define SPI_MOSI 23
 #define DW_CS 4
 
+#define I2C_SDA 4
+#define I2C_SCL 5
 // connection pins
 const uint8_t PIN_RST = 27; // reset pin
 const uint8_t PIN_IRQ = 34; // irq pin
-const uint8_t PIN_SS = 4;   // spi select pin
+const uint8_t PIN_SS = 21;   // spi select pin
 
 // TAG antenna delay defaults to 16384
 // leftmost two bytes below will become the "short address"
@@ -39,6 +41,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 void setup()
 {
   Serial.begin(115200);
+  Wire.begin(I2C_SDA, I2C_SCL);
   delay(1000);
   Serial.println(F("UWB: Setting up tag with default Antenna Delay"));
   unsigned long start;
