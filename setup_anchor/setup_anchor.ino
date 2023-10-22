@@ -1,10 +1,10 @@
-//anchor #4 setup
-
-
 // be sure to edit anchor_addr and select the previously calibrated anchor delay
 // my naming convention is anchors 1, 2, 3, ... have the lowest order byte of the MAC address set to 81, 82, 83, ...
 
 #include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include "DW1000Ranging.h"
 #include "DW1000.h"
 
@@ -12,7 +12,7 @@
 char anchor_addr[] = "84:00:5B:D5:A9:9A:E2:9C"; //#4
 
 //calibrated Antenna Delay setting for this anchor
-uint16_t Adelay = 16580;
+uint16_t Adelay = 16384; //library default is 16384
 
 // previously determined calibration results for antenna delay
 // #1 16630
@@ -33,15 +33,47 @@ const uint8_t PIN_RST = 27; // reset pin
 const uint8_t PIN_IRQ = 34; // irq pin
 const uint8_t PIN_SS = 21;   // spi select pin
 
+#define I2C_SDA 4
+#define I2C_SCL 5
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+// The pins for I2C are defined by the Wire-library.
+// ESP32 SDA = GPIO21 = Stemma Blue
+// ESP32 SCL = GPIO22 = Stemma Yellow
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
 void setup()
 {
   Serial.begin(115200);
+  Wire.begin(I2C_SDA, I2C_SCL);
   delay(1000); //wait for serial monitor to connect
   Serial.println("Anchor config and start");
   Serial.print("Antenna delay ");
   Serial.println(Adelay);
   Serial.print("Calibration distance ");
   Serial.println(dist_m);
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); // Don't proceed, loop forever
+  }
+
+  // Clear the buffer
+  display.clearDisplay();
+  display.setTextSize(2);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.setCursor(0, 0);     // Start at top-left corner
+
+  display.println("UWB anchor ");
+  display.setTextSize(1);
+  display.println(anchor_addr);
+  display.display();
 
   //init the configuration
   SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);

@@ -1,4 +1,7 @@
 #include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include "DW1000Ranging.h"
 #include "DW1000.h"
 
@@ -16,7 +19,6 @@ const uint8_t PIN_SS = 21;   // spi select pin
 
 // leftmost two bytes below will become the "short address"
 char tag_addr[] = "7D:00:22:EA:82:60:3B:9C";
-float current_tag_position[3] = {0}; //tag current position (meters with respect to origin anchor)
 float current_distance_rmse = 0.0;  //error in distance calculations. Crude measure of coordinate error (needs to be characterized)
 
 // variables for position determination
@@ -24,13 +26,40 @@ float current_distance_rmse = 0.0;  //error in distance calculations. Crude meas
 #define ANCHOR_DISTANCE_EXPIRED 5000   //measurements older than this are ignore (milliseconds)
 
 uint32_t last_anchor_update[N_ANCHORS] = {0}; //millis() value last time anchor was seen
+uint16_t last_anchor_addr[N_ANCHORS] = {0}; //keep track of anchor addresses (HEX)
 float last_anchor_distance[N_ANCHORS] = {0.0}; //most recent distance reports
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+// The pins for I2C are defined by the Wire-library.
+// ESP32 SDA = GPIO21 = Stemma Blue
+// ESP32 SCL = GPIO22 = Stemma Yellow
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Wire.begin(I2C_SDA, I2C_SCL);
   delay(1000);
+
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); // Don't proceed, loop forever
+  }
+
+  // Clear the buffer
+  display.clearDisplay();
+  display.setTextSize(2);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.setCursor(0, 0);     // Start at top-left corner
+
+  display.println("UWB tag ");
+  display.display();
 
   //initialize configuration
   SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
@@ -41,26 +70,65 @@ void setup() {
   DW1000Ranging.attachInactiveDevice(inactiveDevice);
 
   // start as tag, do not assign random short address
-
   DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
+  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_SHORTDATA_FAST_LOWPOWER, false);  // range 7 m  smart power 10 m
+  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_FAST_LOWPOWER, false);  // 6.5 m
+  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_SHORTDATA_FAST_ACCURACY, false);  // 5 m, smart power 5 m
+  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_FAST_ACCURACY, false);  // 5 m
+  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_ACCURACY, false);  // 5 m
+  /*
+    The following modes are pre-configured and one of them needs to be chosen:
+    - `MODE_LONGDATA_RANGE_LOWPOWER` (basically this is 110 kb/s data rate, 16 MHz PRF and long preambles)
+    - `MODE_SHORTDATA_FAST_LOWPOWER` (basically this is 6.8 Mb/s data rate, 16 MHz PRF and short preambles)
+    - `MODE_LONGDATA_FAST_LOWPOWER` (basically this is 6.8 Mb/s data rate, 16 MHz PRF and long preambles)
+    - `MODE_SHORTDATA_FAST_ACCURACY` (basically this is 6.8 Mb/s data rate, 64 MHz PRF and short preambles)
+    - `MODE_LONGDATA_FAST_ACCURACY` (basically this is 6.8 Mb/s data rate, 64 MHz PRF and long preambles)
+    - `MODE_LONGDATA_RANGE_ACCURACY` (basically this is 110 kb/s data rate, 64 MHz PRF and long preambles)
+  */
+  //   DW1000Class::useSmartPower(true); //enable higher power for short messages
 }
+
+long int runtime = 0;
 
 void loop() {
   // put your main code here, to run repeatedly:
   DW1000Ranging.loop();
+  if ((millis() - runtime) > 1000)
+  {
+      display_uwb();
+      runtime = millis();
+  }
 }
 
+void display_uwb()
+{
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(2); //Normal 1:1 pixel scale
+  display.setCursor(0, 0); //Start at top-left corner
+
+  //loop through all current anchor distances and print
+  for (int i = 0; i < N_ANCHORS; i++)
+  {
+    display.print(last_anchor_addr[i], HEX);
+    display.print(":");
+    display.println(last_anchor_distance[i], 2); //print 2 decimal places
+  }
+  display.display();
+}
 
 void newRange()
 {
   int i;
 
   //index of this anchor, expecting values 1 to 4
-  int index = DW1000Ranging.getDistantDevice()->getShortAddress() & 0x07; //expect devices 1 to 7
+  uint16_t addr = DW1000Ranging.getDistantDevice()->getShortAddress();
+  int index = addr & 0x07; //expect devices 1 to 7
   if (index > 0 && index < 5) {
     last_anchor_update[index - 1] = millis();  //(-1) => array index
     float range = DW1000Ranging.getDistantDevice()->getRange();
-    last_anchor_distance[index-1] = range;
+    last_anchor_distance[index - 1] = range;
+    last_anchor_addr[index - 1] = addr;
     if (range < 0.0 || range > 30.0)     last_anchor_update[index - 1] = 0;  //sanity check, ignore this measurement
   }
 
@@ -88,16 +156,6 @@ void newRange()
       Serial.println(current_time - last_anchor_update[i]); //age in millis
     }
 #endif
-
-    trilat3D_4A();
-    Serial.print("P= ");  //result
-    Serial.print(current_tag_position[0]);
-    Serial.write(',');
-    Serial.print(current_tag_position[1]);
-    Serial.write(',');
-    Serial.print(current_tag_position[2]);
-    Serial.write(',');
-    Serial.println(current_distance_rmse);
   }
 }  //end newRange
 
