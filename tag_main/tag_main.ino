@@ -19,7 +19,6 @@ const uint8_t PIN_SS = 21;   // spi select pin
 
 // leftmost two bytes below will become the "short address"
 char tag_addr[] = "7D:00:22:EA:82:60:3B:9C";
-float current_distance_rmse = 0.0;  //error in distance calculations. Crude measure of coordinate error (needs to be characterized)
 
 // variables for position determination
 #define N_ANCHORS 4   //THIS VERSION WORKS ONLY WITH 4 ANCHORS. May be generalized to 5 or more.
@@ -65,6 +64,7 @@ void setup() {
   SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
   DW1000Ranging.initCommunication(PIN_RST, PIN_SS, PIN_IRQ); //Reset, CS, IRQ pin
 
+  //set callbacks
   DW1000Ranging.attachNewRange(newRange);
   DW1000Ranging.attachNewDevice(newDevice);
   DW1000Ranging.attachInactiveDevice(inactiveDevice);
@@ -117,6 +117,7 @@ void display_uwb()
   display.display();
 }
 
+//newRange callback
 void newRange()
 {
   int i;

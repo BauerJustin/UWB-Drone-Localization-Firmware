@@ -21,7 +21,7 @@ uint16_t Adelay = 16384; //library default is 16384
 // #4 16580
 
 // calibration distance
-float dist_m = (285 - 1.75) * 0.0254; //meters
+float dist_m = 1; //meters
 
 #define SPI_SCK 18
 #define SPI_MISO 19
