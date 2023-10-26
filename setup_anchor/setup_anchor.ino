@@ -12,13 +12,13 @@
 char anchor_addr[] = "84:00:5B:D5:A9:9A:E2:9C"; //#4
 
 //calibrated Antenna Delay setting for this anchor
-uint16_t Adelay = 16384; //library default is 16384
+uint16_t Adelay = 16548; //library default is 16384
 
 // previously determined calibration results for antenna delay
 // #1 16630
 // #2 16610
 // #3 16607
-// #4 16580
+// #4 16548
 
 // calibration distance
 float dist_m = 1; //meters

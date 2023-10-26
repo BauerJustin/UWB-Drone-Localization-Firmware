@@ -26,8 +26,10 @@
 // connection pins
 const uint8_t PIN_RST = 27; // reset pin
 const uint8_t PIN_IRQ = 34; // irq pin
-const uint8_t PIN_SS = 4;   // spi select pin
+const uint8_t PIN_SS = 21;   // spi select pin
 
+#define I2C_SDA 4
+#define I2C_SCL 5
 
 char this_anchor_addr[] = "84:00:22:EA:82:60:3B:9C";
 float this_anchor_target_distance = 1; //measured distance to anchor in m
