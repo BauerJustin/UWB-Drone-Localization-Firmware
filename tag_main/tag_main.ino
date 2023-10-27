@@ -4,6 +4,9 @@
 #include <Adafruit_SSD1306.h>
 #include "DW1000Ranging.h"
 #include "DW1000.h"
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <ArduinoJson.h>
 
 #define SPI_SCK 18
 #define SPI_MISO 19
@@ -19,6 +22,15 @@ const uint8_t PIN_SS = 21;   // spi select pin
 
 // leftmost two bytes below will become the "short address"
 char tag_addr[] = "7D:00:22:EA:82:60:3B:9C";
+
+// Wifi details
+const char ssid[] = "WIFI_NAME";
+const char password[] = "WIFE_PASSWORD";
+// IP address of GCS
+const char host[] = "192.168.4.21";
+uint16_t portNum = 12345;
+
+WiFiUDP udp;
 
 // variables for position determination
 #define N_ANCHORS 4   //THIS VERSION WORKS ONLY WITH 4 ANCHORS. May be generalized to 5 or more.
@@ -58,7 +70,22 @@ void setup() {
   display.setCursor(0, 0);     // Start at top-left corner
 
   display.println("UWB tag ");
+
+  // Setup wifi connection
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+  }
+  display.setTextSize(1);
+  display.println(F("Tag address:"));
+  display.print(WiFi.localIP());
   display.display();
+  // 5s pause before starting main loop
+  delay(5000);
+  // Start the UDP interface
+  udp.begin(50000);
 
   //initialize configuration
   SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
@@ -95,9 +122,39 @@ void loop() {
   DW1000Ranging.loop();
   if ((millis() - runtime) > 1000)
   {
+      update_gcs();
       display_uwb();
       runtime = millis();
   }
+}
+
+void update_gcs() {
+
+  // Allocate a temporary JsonDocument
+  // Use https://arduinojson.org/v6/assistant to compute the capacity. -> Can optimize the size
+  StaticJsonDocument<500> doc;
+  char id[3] = {tag_addr[0], tag_addr[1], '\0'};
+  doc["id"] = id;
+  JsonObject measurements = doc.createNestedObject("measurements");
+  for (int i = 0; i < N_ANCHORS; i++)
+  {
+    String anchor_id = String(last_anchor_addr[i]);
+    if (anchor_id != "0") {
+      measurements[anchor_id] = last_anchor_distance[i];
+    }
+  }
+  // String jsonString;
+  // serializeJson(doc, jsonString);
+  // display.clearDisplay();
+  // display.setTextColor(SSD1306_WHITE);
+  // display.setTextSize(1); //Normal 1:1 pixel scale
+  // display.setCursor(0, 0); //Start at top-left corner
+  // display.println(jsonString);
+  // display.display();
+  udp.beginPacket(host, portNum);
+  serializeJson(doc, udp);
+  udp.println();
+  udp.endPacket();
 }
 
 void display_uwb()
