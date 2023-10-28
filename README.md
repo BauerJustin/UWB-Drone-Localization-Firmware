@@ -14,6 +14,7 @@ The boards used are the ESP32 UWB Pro with the Adafruit_SSD1306 OLED display.
 - [Setup](#setup)
 - [Usage](#usage)
 - [Configuration](#configuration)
+- [Troubleshoot] (#troubleshoot)
 
 ## Setup
 
@@ -72,4 +73,14 @@ const char* password = "YourWiFiPassword";
 const char* udpServerIP = "UDP_Server_IP";
 const int udpServerPort = 12345;
 ```
+## Troubleshoot
 
+Here are some of the issues I've ran into while working on this project, and their solutions
+
+1. **No COM port for ESP32 device** or **Failed upload**
+
+    Check Device Manager to see if there is a new COM port when you plug in the ESP32. That would be the COM port that would be used to flash the code to ESP32.
+
+    Tools -> Port -> COM#
+    
+    If no port exists, then you likely don't have its driver. Download it from https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers?tab=downloads
