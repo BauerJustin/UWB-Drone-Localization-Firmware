@@ -2,9 +2,14 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <ArduinoJson.h>
+
 #include "DW1000Ranging.h"
 #include "DW1000.h"
 
+/******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
 #define SPI_MISO 19
 #define SPI_MOSI 23
@@ -17,6 +22,7 @@ const uint8_t PIN_SS = 21;   // spi select pin
 #define I2C_SDA 4
 #define I2C_SCL 5
 
+/******* DEVICE CONFIG ***********/
 // leftmost two bytes below will become the "short address"
 char tag_addr[] = "7D:00:22:EA:82:60:3B:9C";
 
@@ -38,6 +44,14 @@ float last_anchor_distance[N_ANCHORS] = {0.0}; //most recent distance reports
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 #define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+/****** WIFI CONFIG ********/
+const char* ssid = "YourWiFiSSID";
+const char* password = "YourWiFiPassword";
+const char* udpServerIP = "UDP_Server_IP";
+const int udpServerPort = 12345;
+
+WiFiUDP udp;
 
 void setup() {
   // put your setup code here, to run once:
@@ -86,6 +100,23 @@ void setup() {
     - `MODE_LONGDATA_RANGE_ACCURACY` (basically this is 110 kb/s data rate, 64 MHz PRF and long preambles)
   */
   //   DW1000Class::useSmartPower(true); //enable higher power for short messages
+  
+  // Start Wifi
+  long int wifiStartTime = millis();
+
+  Serial.println("Connecting to WiFi...");
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    if (millis() - wifiStartTime >= 10000) { // 10 second timeout
+      Serial.println("Failed to connect to WiFi. Exiting setup.");
+      return;
+    }
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+
+  Serial.println("Connected to WiFi");
 }
 
 long int runtime = 0;
@@ -93,10 +124,29 @@ long int runtime = 0;
 void loop() {
   // put your main code here, to run repeatedly:
   DW1000Ranging.loop();
-  if ((millis() - runtime) > 1000)
+  if ((millis() - runtime) > 1000) // every 1 second
   {
       display_uwb();
       runtime = millis();
+
+      // Create a JSON object
+      DynamicJsonDocument jsonDoc(192);
+      // Create a nested JSON object for "measurements"
+      JsonObject measurements = jsonDoc.createNestedObject("measurements");
+      char macHexString[3];
+      for(int i = 0; i < N_ANCHORS; i++){
+        sprintf(macHexString, "%02x", last_anchor_addr[i]);
+        measurements[macHexString] = last_anchor_distance[i];
+      }
+      jsonDoc["id"] = tag_addr;
+      // Serialize the JSON to a string
+      String jsonStr;
+      serializeJson(jsonDoc, jsonStr);
+
+      // Send the JSON data via UDP
+      udp.beginPacket(udpServerIP, udpServerPort);
+      udp.print(jsonStr);
+      udp.endPacket();
   }
 }
 
