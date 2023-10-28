@@ -135,6 +135,7 @@ void loop() {
       JsonObject measurements = jsonDoc.createNestedObject("measurements");
       char macHexString[3];
       for(int i = 0; i < N_ANCHORS; i++){
+        if(last_anchor_distance[i] == 0.0) continue; // skip empty anchors
         sprintf(macHexString, "%02x", last_anchor_addr[i]);
         measurements[macHexString] = last_anchor_distance[i];
       }
