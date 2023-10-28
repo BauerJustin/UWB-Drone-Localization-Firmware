@@ -46,9 +46,9 @@ float last_anchor_distance[N_ANCHORS] = {0.0}; //most recent distance reports
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /****** WIFI CONFIG ********/
-const char* ssid = "YourWiFiSSID";
-const char* password = "YourWiFiPassword";
-const char* udpServerIP = "UDP_Server_IP";
+const char* ssid = "FibreStream 19322 - 2.4";
+const char* password = "asdfasdfasdfasdfa";
+const char* udpServerIP = "192.168.0.219";
 const int udpServerPort = 12345;
 
 WiFiUDP udp;
@@ -138,7 +138,11 @@ void loop() {
         sprintf(macHexString, "%02x", last_anchor_addr[i]);
         measurements[macHexString] = last_anchor_distance[i];
       }
-      jsonDoc["id"] = tag_addr;
+      // copy first 2 char of tag_addr for id
+      char id[3];
+      strncpy(id, tag_addr, 2);
+      id[2] = '\0'; // Null-terminate the string
+      jsonDoc["id"] = id;
       // Serialize the JSON to a string
       String jsonStr;
       serializeJson(jsonDoc, jsonStr);
