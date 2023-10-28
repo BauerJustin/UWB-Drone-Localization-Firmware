@@ -33,7 +33,7 @@ To get started with this project, follow these installtion steps
 
     Setup the necessary board and libraries
     - Tools -> Boards -> Boards Manager -> **install esp32 by Espressif**
-    - Tools -> Manage Libraries... -> **Install Adafruit_SSD1306**
+    - Tools -> Manage Libraries... -> **Install Adafruit_SSD1306, and ArduinoJson**
     - Move the `DW1000_library` into Arduino's libraries folder (default path is C:\Users\$USER\Documents\Arduino\libraries)
     - Before flashing code, please select **ESP32 wrover** board
 
@@ -62,5 +62,14 @@ Here are the pin definitions that should be used for all boards
 
 #define I2C_SDA 4	//I2C screen ssd1306
 #define I2C_SCL 5
+```
+
+WiFi would also need to be configured for the tags in `tag_main`
+```c
+/****** WIFI CONFIG ********/
+const char* ssid = "YourWiFiSSID";
+const char* password = "YourWiFiPassword";
+const char* udpServerIP = "UDP_Server_IP";
+const int udpServerPort = 12345;
 ```
 
