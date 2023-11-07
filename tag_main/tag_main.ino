@@ -46,9 +46,9 @@ float last_anchor_distance[N_ANCHORS] = {0.0}; //most recent distance reports
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /****** WIFI CONFIG ********/
-const char* ssid = "FibreStream 19322 - 2.4";
-const char* password = "asdfasdfasdfasdfa";
-const char* udpServerIP = "192.168.0.219";
+const char* ssid = "Drone Control Station";
+const char* password = "701BA2887E";
+const char* udpServerIP = "192.168.0.4";
 const int udpServerPort = 12345;
 
 WiFiUDP udp;
@@ -83,6 +83,8 @@ void setup() {
   DW1000Ranging.attachNewDevice(newDevice);
   DW1000Ranging.attachInactiveDevice(inactiveDevice);
 
+  // Setup jsonDoc
+  DynamicJsonDocument jsonDoc(192);
   // start as tag, do not assign random short address
   DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
   //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_SHORTDATA_FAST_LOWPOWER, false);  // range 7 m  smart power 10 m
@@ -119,39 +121,27 @@ void setup() {
   Serial.println("Connected to WiFi");
 }
 
-long int runtime = 0;
-
+unsigned long lastTransmissionTime = 0;
+unsigned long lastDisplayTime = 0;
+DynamicJsonDocument jsonDoc(192);
+JsonObject measurements = jsonDoc.createNestedObject("measurements");
 void loop() {
   // put your main code here, to run repeatedly:
   DW1000Ranging.loop();
-  if ((millis() - runtime) > 1000) // every 1 second
+  if ((millis() - lastDisplayTime) > 1000) // every 1 second
   {
       display_uwb();
-      runtime = millis();
-
-      // Create a JSON object
-      DynamicJsonDocument jsonDoc(192);
-      // Create a nested JSON object for "measurements"
-      JsonObject measurements = jsonDoc.createNestedObject("measurements");
-      char macHexString[3];
-      for(int i = 0; i < N_ANCHORS; i++){
-        if(last_anchor_distance[i] == 0.0) continue; // skip empty anchors
-        sprintf(macHexString, "%02x", last_anchor_addr[i]);
-        measurements[macHexString] = last_anchor_distance[i];
-      }
-      // copy first 2 char of tag_addr for id
-      char id[3];
-      strncpy(id, tag_addr, 2);
-      id[2] = '\0'; // Null-terminate the string
-      jsonDoc["id"] = id;
-      // Serialize the JSON to a string
-      String jsonStr;
-      serializeJson(jsonDoc, jsonStr);
-
-      // Send the JSON data via UDP
-      udp.beginPacket(udpServerIP, udpServerPort);
-      udp.print(jsonStr);
-      udp.endPacket();
+      lastDisplayTime = millis();
+  }
+  if ((millis() - lastTransmissionTime) > 100)
+  {
+    // Call createJsonPackage to populate the JSON document
+    createJsonPackage(&jsonDoc, &measurements);
+    
+    // Call transmitJsonPackage to send the UDP message
+    transmitJsonPackage(&jsonDoc, udp);
+    
+    lastTransmissionTime = millis();
   }
 }
 
@@ -225,4 +215,30 @@ void inactiveDevice(DW1000Device *device)
 {
   Serial.print("delete inactive device: ");
   Serial.println(device->getShortAddress(), HEX);
+}
+
+
+void createJsonPackage(DynamicJsonDocument *jsonDoc, JsonObject *measurements) {
+  char macHexString[3];
+  
+  for (int i = 0; i < N_ANCHORS; i++) {
+    if (last_anchor_distance[i] == 0.0) continue; // Skip empty anchors
+    sprintf(macHexString, "%02x", last_anchor_addr[i]);
+    (*measurements)[macHexString] = last_anchor_distance[i];
+  }
+  
+  char id[3];
+  strncpy(id, tag_addr, 2);
+  id[2] = '\0'; // Null-terminate the string
+  (*jsonDoc)["id"] = id;
+}
+
+void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiUDP &udp) {
+  String jsonStr;
+  serializeJson(*jsonDoc, jsonStr);
+  
+  udp.beginPacket(udpServerIP, udpServerPort);
+  udp.print(jsonStr);
+  udp.endPacket();
+  Serial.println("Sent package to UDP server");
 }
