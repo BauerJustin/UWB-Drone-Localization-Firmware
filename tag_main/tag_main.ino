@@ -24,6 +24,7 @@ const uint8_t PIN_SS = 21;   // spi select pin
 
 /******* DEVICE CONFIG ***********/
 // leftmost two bytes below will become the "short address"
+// for multitag use addrs 7D, 7E, 7F
 char tag_addr[] = "7D:00:22:EA:82:60:3B:9C";
 
 // variables for position determination
@@ -232,7 +233,7 @@ void createJsonPackage(DynamicJsonDocument *jsonDoc, JsonObject *measurements) {
   id[2] = '\0'; // Null-terminate the string
   (*jsonDoc)["id"] = id;
 
-  (*jsonDoc) ["timestamp"] = millis(); // Using tag's timestamp
+  (*jsonDoc)["timestamp"] = float(millis() / 1000.0); // Using tag's timestamp
 }
 
 void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiUDP &udp) {
