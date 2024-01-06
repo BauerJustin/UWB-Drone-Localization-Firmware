@@ -231,6 +231,8 @@ void createJsonPackage(DynamicJsonDocument *jsonDoc, JsonObject *measurements) {
   strncpy(id, tag_addr, 2);
   id[2] = '\0'; // Null-terminate the string
   (*jsonDoc)["id"] = id;
+
+  (*jsonDoc) ["timestamp"] = millis(); // Using tag's timestamp
 }
 
 void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiUDP &udp) {
