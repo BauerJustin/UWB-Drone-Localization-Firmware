@@ -35,6 +35,13 @@ uint32_t last_anchor_update[N_ANCHORS] = {0}; //millis() value last time anchor 
 uint16_t last_anchor_addr[N_ANCHORS] = {0}; //keep track of anchor addresses (HEX)
 float last_anchor_distance[N_ANCHORS] = {0.0}; //most recent distance reports
 
+// for moving avg filter
+#define WINDOW_SIZE 10 //window size of 10 with ranging period of 100 ms means buffer holds 1 s of data
+float moving_avg_data[N_ANCHORS][WINDOW_SIZE] = {0.0};
+int idx[N_ANCHORS] = {0};
+float sum[N_ANCHORS] = {0.0};
+float filtered_anchor_distance[N_ANCHORS] = {0.0}; //most recent distance reports after moving avg filter
+
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
@@ -163,6 +170,25 @@ void display_uwb()
   display.display();
 }
 
+// Moving average filter for distance
+void movingAverage(const int id, float value)
+{
+  int i = idx[id]; //index for buffer
+  sum[id] -= moving_avg_data[id][i]; //drop oldest measurement
+  moving_avg_data[id][i] = value; //update buffer
+  sum[id] += value; //update value
+  idx[id] = (i + 1) % WINDOW_SIZE; //update index for next write
+
+  filtered_anchor_distance[id] = sum[id] / WINDOW_SIZE; //save avg for this anchor id
+
+  // FOR SERIAL PLOTTER
+  Serial.println(id);
+  Serial.print(",");
+  Serial.print(value);
+  Serial.print(",");
+  Serial.print(filtered_anchor_distance[id]);
+}
+
 //newRange callback
 void newRange()
 {
@@ -172,11 +198,13 @@ void newRange()
   uint16_t addr = DW1000Ranging.getDistantDevice()->getShortAddress();
   int index = addr & 0x07; //expect devices 1 to 7
   if (index > 0 && index < 5) {
+    Serial.println(millis() - last_anchor_update[index - 1]); //prints ranging period in ms
     last_anchor_update[index - 1] = millis();  //(-1) => array index
     float range = DW1000Ranging.getDistantDevice()->getRange();
     last_anchor_distance[index - 1] = range;
     last_anchor_addr[index - 1] = addr;
-    if (range < 0.0 || range > 30.0)     last_anchor_update[index - 1] = 0;  //sanity check, ignore this measurement
+    movingAverage(index - 1, range); // update filtered data
+    if (range < 0.0 || range > 30.0) last_anchor_update[index - 1] = 0;  //sanity check, ignore this measurement
   }
 
 #ifdef DEBUG_ANCHOR_ID
@@ -225,7 +253,8 @@ void createJsonPackage(DynamicJsonDocument *jsonDoc, JsonObject *measurements) {
   for (int i = 0; i < N_ANCHORS; i++) {
     if (last_anchor_distance[i] == 0.0) continue; // Skip empty anchors
     sprintf(macHexString, "%02x", last_anchor_addr[i]);
-    (*measurements)[macHexString] = last_anchor_distance[i];
+    (*measurements)[macHexString] = last_anchor_distance[i]; //send raw distances
+    //(*measurements)[macHexString] = filtered_anchor_distance[i]; //send filtered distances
   }
   
   char id[3];
@@ -243,5 +272,4 @@ void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiUDP &udp) {
   udp.beginPacket(udpServerIP, udpServerPort);
   udp.print(jsonStr);
   udp.endPacket();
-  Serial.println("Sent package to UDP server");
 }
