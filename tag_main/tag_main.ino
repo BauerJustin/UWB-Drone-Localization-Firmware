@@ -203,7 +203,7 @@ void newRange()
     float range = DW1000Ranging.getDistantDevice()->getRange();
     last_anchor_distance[index - 1] = range;
     last_anchor_addr[index - 1] = addr;
-    movingAverage(index - 1, range); // update filtered data
+    //movingAverage(index - 1, range); // update filtered data
     if (range < 0.0 || range > 30.0) last_anchor_update[index - 1] = 0;  //sanity check, ignore this measurement
   }
 
