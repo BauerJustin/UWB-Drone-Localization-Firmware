@@ -94,9 +94,9 @@ void setup() {
   // Setup jsonDoc
   DynamicJsonDocument jsonDoc(192);
   // start as tag, do not assign random short address
-  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
+  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
   //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_SHORTDATA_FAST_LOWPOWER, false);  // range 7 m  smart power 10 m
-  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_FAST_LOWPOWER, false);  // 6.5 m
+  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_FAST_LOWPOWER, false);  // 6.5 m
   //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_SHORTDATA_FAST_ACCURACY, false);  // 5 m, smart power 5 m
   //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_FAST_ACCURACY, false);  // 5 m
   //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_ACCURACY, false);  // 5 m
@@ -182,11 +182,11 @@ void movingAverage(const int id, float value)
   filtered_anchor_distance[id] = sum[id] / WINDOW_SIZE; //save avg for this anchor id
 
   // FOR SERIAL PLOTTER
-  Serial.println(id);
-  Serial.print(",");
-  Serial.print(value);
-  Serial.print(",");
-  Serial.print(filtered_anchor_distance[id]);
+  // Serial.println(id);
+  // Serial.print(",");
+  // Serial.print(value);
+  // Serial.print(",");
+  // Serial.print(filtered_anchor_distance[id]);
 }
 
 //newRange callback
@@ -204,7 +204,7 @@ void newRange()
     last_anchor_distance[index - 1] = range;
     last_anchor_addr[index - 1] = addr;
     //movingAverage(index - 1, range); // update filtered data
-    if (range < 0.0 || range > 30.0) last_anchor_update[index - 1] = 0;  //sanity check, ignore this measurement
+    //if (range < 0.0 || range > 30.0) last_anchor_update[index - 1] = 0;  //sanity check, ignore this measurement
   }
 
 #ifdef DEBUG_ANCHOR_ID

@@ -21,7 +21,7 @@ uint16_t Adelay = 16599; //library default is 16384
 // #4 16548
 
 // calibration distance
-float dist_m = 1; //meters
+float dist_m = 2; //meters
 
 #define SPI_SCK 18
 #define SPI_MISO 19
@@ -87,12 +87,12 @@ void setup()
   DW1000Ranging.attachInactiveDevice(inactiveDevice);
 
   //start the module as an anchor, do not assign random short address
-  DW1000Ranging.startAsAnchor(anchor_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
-  // DW1000Ranging.startAsAnchor(ANCHOR_ADD, DW1000.MODE_SHORTDATA_FAST_LOWPOWER);
-  // DW1000Ranging.startAsAnchor(ANCHOR_ADD, DW1000.MODE_LONGDATA_FAST_LOWPOWER);
-  // DW1000Ranging.startAsAnchor(ANCHOR_ADD, DW1000.MODE_SHORTDATA_FAST_ACCURACY);
-  // DW1000Ranging.startAsAnchor(ANCHOR_ADD, DW1000.MODE_LONGDATA_FAST_ACCURACY);
-  // DW1000Ranging.startAsAnchor(ANCHOR_ADD, DW1000.MODE_LONGDATA_RANGE_ACCURACY);
+  // DW1000Ranging.startAsAnchor(anchor_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
+  // DW1000Ranging.startAsAnchor(anchor_addr, DW1000.MODE_SHORTDATA_FAST_LOWPOWER, false);
+  DW1000Ranging.startAsAnchor(anchor_addr, DW1000.MODE_LONGDATA_FAST_LOWPOWER, false);
+  // DW1000Ranging.startAsAnchor(anchor_addr, DW1000.MODE_SHORTDATA_FAST_ACCURACY, false);
+  // DW1000Ranging.startAsAnchor(anchor_addr, DW1000.MODE_LONGDATA_FAST_ACCURACY, false);
+  // DW1000Ranging.startAsAnchor(anchor_addr, DW1000.MODE_LONGDATA_RANGE_ACCURACY, false);
 }
 
 void loop()
