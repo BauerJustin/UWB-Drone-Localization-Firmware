@@ -9,6 +9,13 @@
 #include "DW1000Ranging.h"
 #include "DW1000.h"
 
+/******** SETTINGS *********/
+#define TAG1  // use this to select the tag
+// #define TAG2
+// #define TAG3
+#define MULTI_TAG
+// #define SINGLE_TAG
+
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
 #define SPI_MISO 19
@@ -24,8 +31,21 @@ const uint8_t PIN_SS = 21;   // spi select pin
 
 /******* DEVICE CONFIG ***********/
 // leftmost two bytes below will become the "short address"
-// for multitag use addrs 7D, 7E, 7F
-char tag_addr[] = "7D:00:22:EA:82:60:3B:9C";
+
+#ifdef TAG1
+    // For TAG1 use addr 7D
+    char tag_addr[] = "7D:00:22:EA:82:60:3B:9C";
+#endif
+
+#ifdef TAG2
+    // For TAG2 use addr 7E
+    char tag_addr[] = "7E:00:22:EA:82:60:3B:9C";
+#endif
+
+#ifdef TAG3
+    // For TAG3 use addr 7F
+    char tag_addr[] = "7F:00:22:EA:82:60:3B:9C";
+#endif
 
 // variables for position determination
 #define N_ANCHORS 4   //THIS VERSION WORKS ONLY WITH 4 ANCHORS. May be generalized to 5 or more.
@@ -58,8 +78,12 @@ const char* ssid = "Drone Control Station";
 const char* password = "701BA2887E";
 const char* udpServerIP = "192.168.0.4";
 const int udpServerPort = 12345;
-
 WiFiUDP udp;
+/**** JSON variables ********/
+DynamicJsonDocument jsonDoc(192);
+JsonObject measurements = jsonDoc.createNestedObject("measurements");
+
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -127,22 +151,36 @@ void setup() {
   }
 
   Serial.println("Connected to WiFi");
+
+  // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
+  
+  // Call createJsonPackage to populate the JSON document
+  createJsonPackage(&jsonDoc, &measurements);
+  
+  // Call transmitJsonPackage to send the UDP message
+  transmitJsonPackage(&jsonDoc, udp);
 }
 
 unsigned long lastTransmissionTime = 0;
 unsigned long lastDisplayTime = 0;
-DynamicJsonDocument jsonDoc(192);
-JsonObject measurements = jsonDoc.createNestedObject("measurements");
+
+// UDP read buffer
+char packetBuffer[2];
+
 void loop() {
   // put your main code here, to run repeatedly:
-  DW1000Ranging.loop();
-  if ((millis() - lastDisplayTime) > 1000) // every 1 second
-  {
-      display_uwb();
-      lastDisplayTime = millis();
-  }
-  if ((millis() - lastTransmissionTime) > 100)
-  {
+
+#ifdef MULTI_TAG
+  // if there's data available, read then get measurements
+  int packetSize = udp.parsePacket();
+  if(packetSize){
+    int len = Udp.read(packetBuffer, 2);
+    if (len > 0) {
+      packetBuffer[len] = 0;
+    }
+    // get measurements
+    DW1000Ranging.loop();
+
     // Call createJsonPackage to populate the JSON document
     createJsonPackage(&jsonDoc, &measurements);
     
@@ -150,6 +188,28 @@ void loop() {
     transmitJsonPackage(&jsonDoc, udp);
     
     lastTransmissionTime = millis();
+  }
+#endif
+
+#ifdef SINGLE_TAG
+  // get measurements
+  DW1000Ranging.loop();
+
+  if(millis() - lastTransmissionTime > 100){
+    // Call createJsonPackage to populate the JSON document
+    createJsonPackage(&jsonDoc, &measurements);
+    
+    // Call transmitJsonPackage to send the UDP message
+    transmitJsonPackage(&jsonDoc, udp);
+    
+    lastTransmissionTime = millis();
+  }
+#endif
+  
+  if ((millis() - lastDisplayTime) > 1000) // every 1 second
+  {
+      display_uwb();
+      lastDisplayTime = millis();
   }
 }
 
