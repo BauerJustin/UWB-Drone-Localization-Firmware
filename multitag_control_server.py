@@ -1,5 +1,7 @@
 """
-Prototype server that handles multitag
+Prototype server that handles multitag.
+
+Tags needs to send an initial packet to register itself with the server.
 """
 
 import socket
