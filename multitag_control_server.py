@@ -1,5 +1,5 @@
 """
-
+Prototype server that handles multitag
 """
 
 import socket
@@ -17,7 +17,7 @@ def get_next_key(d, current_key):
 
 def request_measurements(socket, ip, port):
     addr = (ip, port)
-    msg = "1"
+    msg = "1" # or whatever message
     socket.sendto(msg, addr)
     print(f"Sent req msg to {ip}:{port}")
 
