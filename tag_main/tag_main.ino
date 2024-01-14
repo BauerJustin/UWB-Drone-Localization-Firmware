@@ -15,6 +15,7 @@
 // #define TAG3
 #define MULTI_TAG
 // #define SINGLE_TAG
+#define TRANSMIT_WINDOW 125
 
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
@@ -179,7 +180,10 @@ void loop() {
       packetBuffer[len] = 0;
     }
     // get measurements
-    DW1000Ranging.loop();
+    unsigned long start_time = millis();
+
+    while(millis() - start_time < TRANSMIT_WINDOW)
+      DW1000Ranging.loop();
 
     // Call createJsonPackage to populate the JSON document
     createJsonPackage(&jsonDoc, &measurements);
