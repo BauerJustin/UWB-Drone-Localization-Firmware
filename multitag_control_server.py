@@ -27,7 +27,7 @@ def current_milli_time():
     return round(time.time() * 1000)
 
 # Define the UDP server's IP address and port
-server_ip = "192.168.0.219" 
+server_ip = "192.168.0.242" 
 server_port = 12345  # Replace with the port you want to listen on
 
 # Create a UDP socket
