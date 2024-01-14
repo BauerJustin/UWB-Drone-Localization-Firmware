@@ -48,7 +48,7 @@ while True:
     if ip not in tag_address.keys():
         print(f"New tag added. Address: {ip}:{port}")
         tag_address[ip] = port
-        if len(tag_address) is 1:
+        if len(tag_address) == 1:
             request_measurements(udp_socket, ip, port)
             start_time = current_milli_time()
     # have seen this before, and just got back a packet.
