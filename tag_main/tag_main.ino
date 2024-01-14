@@ -10,11 +10,11 @@
 #include "DW1000.h"
 
 /******** SETTINGS *********/
-#define TAG1  // use this to select the tag
-// #define TAG2
+//#define TAG1  // use this to select the tag
+#define TAG2
 // #define TAG3
-//#define MULTI_TAG
- #define SINGLE_TAG
+#define MULTI_TAG
+//#define SINGLE_TAG
 #define TRANSMIT_WINDOW 125
 
 /******** PIN DEFINITIONS *************/
@@ -77,7 +77,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "FibreStream 19322 - 2.4";
 const char* password = "roseleaf58";
-const char* udpServerIP = "192.168.0.242";
+const char* udpServerIP = "192.168.0.212";
 const int udpServerPort = 12345;
 WiFiUDP udp;
 /**** JSON variables ********/
@@ -156,10 +156,10 @@ void setup() {
   // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
   
 //  // Call createJsonPackage to populate the JSON document
-//  createJsonPackage(&jsonDoc, &measurements);
+  createJsonPackage(&jsonDoc, &measurements);
 //  
 //  // Call transmitJsonPackage to send the UDP message
-//  transmitJsonPackage(&jsonDoc, udp);
+  transmitJsonPackage(&jsonDoc, udp);
 }
 
 unsigned long lastTransmissionTime = 0;

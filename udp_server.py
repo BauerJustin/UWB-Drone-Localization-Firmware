@@ -1,7 +1,7 @@
 import socket
 
 # Define the UDP server's IP address and port
-server_ip = "192.168.0.219"  # Listen on all available network interfaces
+server_ip = "192.168.0.212"  # Listen on all available network interfaces
 server_port = 12345  # Replace with the port you want to listen on
 
 # Create a UDP socket

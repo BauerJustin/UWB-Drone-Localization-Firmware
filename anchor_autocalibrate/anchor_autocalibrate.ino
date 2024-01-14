@@ -60,7 +60,8 @@ void setup()
 
   //start the module as anchor, don't assign random short address
   //DW1000Ranging.startAsAnchor(this_anchor_addr, DW1000.MODE_LONGDATA_FAST_ACCURACY, false);
-  DW1000Ranging.startAsAnchor(this_anchor_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
+  // DW1000Ranging.startAsAnchor(this_anchor_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
+  DW1000Ranging.startAsAnchor(this_anchor_addr, DW1000.MODE_LONGDATA_FAST_LOWPOWER, false);
   // DW1000Ranging.startAsAnchor(ANCHOR_ADD, DW1000.MODE_SHORTDATA_FAST_LOWPOWER);
   // DW1000Ranging.startAsAnchor(ANCHOR_ADD, DW1000.MODE_LONGDATA_FAST_LOWPOWER);
   // DW1000Ranging.startAsAnchor(ANCHOR_ADD, DW1000.MODE_SHORTDATA_FAST_ACCURACY);
