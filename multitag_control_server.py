@@ -28,7 +28,7 @@ def current_milli_time():
     return round(time.time() * 1000)
 
 # Define the UDP server's IP address and port
-server_ip = "192.168.0.212" 
+server_ip = "192.168.0.3" 
 server_port = 12345  # Replace with the port you want to listen on
 
 # Create a UDP socket
@@ -43,11 +43,16 @@ print(f"UDP server listening on {server_ip}:{server_port}")
 tag_address = {} # maps ip to port
 start_time = 0
 
+previous_id = None
+
 while True:
     try:
         data, (ip, port) = udp_socket.recvfrom(1024)
     except socket.timeout:
         print("Trying again!")
+        if previous_id is not None:
+            ip, port = tag_address[previous_id]
+            request_measurements(udp_socket, ip, port)
         continue
     
     if not data:
@@ -62,10 +67,14 @@ while True:
         if len(tag_address) == 1:
             request_measurements(udp_socket, ip, port)
             start_time = current_milli_time()
+            previous_id = id
     # have seen this before, and just got back a packet.
     else: 
         print(f"Received {len(data)} bytes from {ip}:{port}")
         print(f"Data: {data}")
+        # update ip and port if its changes
+        if (ip, port) != tag_address[id]:
+            tag_address[id] = (ip, port)
         end_time = current_milli_time()
         time_taken = end_time - start_time
         print(f"Time taken (ms): {time_taken}")
@@ -75,3 +84,4 @@ while True:
         next_ip, next_port = tag_address[next_id]
 
         request_measurements(udp_socket, next_ip, next_port)
+        previous_id = next_id

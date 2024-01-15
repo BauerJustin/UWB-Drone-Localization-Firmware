@@ -15,7 +15,7 @@
 // #define TAG3
 #define MULTI_TAG
 //#define SINGLE_TAG
-#define TRANSMIT_WINDOW 125
+#define TRANSMIT_WINDOW 100
 
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
@@ -75,16 +75,18 @@ float filtered_anchor_distance[N_ANCHORS] = {0.0}; //most recent distance report
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /****** WIFI CONFIG ********/
-const char* ssid = "FibreStream 19322 - 2.4";
-const char* password = "roseleaf58";
-const char* udpServerIP = "192.168.0.212";
+const char* ssid = "DCS";
+const char* password = "701BA2887E";
+const char* udpServerIP = "192.168.0.3";
 const int udpServerPort = 12345;
 WiFiUDP udp;
 /**** JSON variables ********/
 DynamicJsonDocument jsonDoc(192);
 JsonObject measurements = jsonDoc.createNestedObject("measurements");
 
-
+/****  ****/
+uint8_t numRangeTransmitted = 0; // number of times newRange() is called
+uint8_t numAnchors = 0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -179,10 +181,12 @@ void loop() {
     if (len > 0) {
       packetBuffer[len] = 0;
     }
+    // reset number of anchors that transmitted its range
+    numRangeTransmitted = 0;
     // get measurements
     unsigned long start_time = millis();
 
-    while(millis() - start_time < TRANSMIT_WINDOW)
+    while(millis() - start_time < TRANSMIT_WINDOW || numRangeTransmitted != numAnchors)
       DW1000Ranging.loop();
 
     // Call createJsonPackage to populate the JSON document
@@ -295,6 +299,9 @@ void newRange()
       Serial.println(current_time - last_anchor_update[i]); //age in millis
     }
 #endif
+  
+  // note down how many anchors has transmitted their range
+  numRangeTransmitted++;
   }
 }  //end newRange
 
@@ -302,12 +309,14 @@ void newDevice(DW1000Device *device)
 {
   Serial.print("Device added: ");
   Serial.println(device->getShortAddress(), HEX);
+  numAnchors++;
 }
 
 void inactiveDevice(DW1000Device *device)
 {
   Serial.print("delete inactive device: ");
   Serial.println(device->getShortAddress(), HEX);
+  numAnchors--;
 }
 
 
