@@ -28,7 +28,7 @@ def current_milli_time():
     return round(time.time() * 1000)
 
 # Define the UDP server's IP address and port
-server_ip = "192.168.0.3" 
+server_ip = "192.168.0.4" 
 server_port = 12345  # Replace with the port you want to listen on
 
 # Create a UDP socket
@@ -51,7 +51,8 @@ while True:
     except socket.timeout:
         print("Trying again!")
         if previous_id is not None:
-            ip, port = tag_address[previous_id]
+            id = get_next_key(tag_address, previous_id)
+            ip, port = tag_address[id]
             request_measurements(udp_socket, ip, port)
         continue
     

@@ -10,11 +10,11 @@
 #include "DW1000.h"
 
 /******** SETTINGS *********/
-//#define TAG1  // use this to select the tag
-#define TAG2
+#define TAG1  // use this to select the tag
+// #define TAG2
 // #define TAG3
-#define MULTI_TAG
-//#define SINGLE_TAG
+// #define MULTI_TAG
+#define SINGLE_TAG
 #define TRANSMIT_WINDOW 100
 
 /******** PIN DEFINITIONS *************/
@@ -77,7 +77,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "DCS";
 const char* password = "701BA2887E";
-const char* udpServerIP = "192.168.0.3";
+const char* udpServerIP = "192.168.0.4";
 const int udpServerPort = 12345;
 WiFiUDP udp;
 /**** JSON variables ********/
@@ -106,7 +106,7 @@ void setup() {
   display.setTextColor(SSD1306_WHITE); // Draw white text
   display.setCursor(0, 0);     // Start at top-left corner
 
-  display.println("UWB tag ");
+  display.println("UWB tag");
   display.display();
 
   //initialize configuration
@@ -274,6 +274,8 @@ void newRange()
     //movingAverage(index - 1, range); // update filtered data
     //if (range < 0.0 || range > 30.0) last_anchor_update[index - 1] = 0;  //sanity check, ignore this measurement
   }
+  // note down how many anchors has transmitted their range
+  numRangeTransmitted++;
 
 #ifdef DEBUG_ANCHOR_ID
   Serial.print(index); //anchor ID, raw range
@@ -299,9 +301,6 @@ void newRange()
       Serial.println(current_time - last_anchor_update[i]); //age in millis
     }
 #endif
-  
-  // note down how many anchors has transmitted their range
-  numRangeTransmitted++;
   }
 }  //end newRange
 
