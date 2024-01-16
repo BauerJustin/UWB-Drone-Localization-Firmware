@@ -84,5 +84,8 @@ while True:
         next_id = get_next_key(tag_address, id)
         next_ip, next_port = tag_address[next_id]
 
+        # before moving on to next tag, add small delay to allow for tag to finish any communication with anchors
+        time.sleep(0.05)
+        
         request_measurements(udp_socket, next_ip, next_port)
         previous_id = next_id

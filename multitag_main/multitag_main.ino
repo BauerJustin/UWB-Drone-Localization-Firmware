@@ -158,7 +158,7 @@ unsigned long lastTransmissionTime = 0;
 unsigned long lastDisplayTime = 0;
 
 // UDP read buffer
-char packetBuffer[2];
+char packetBuffer[2] = "";
 
 void loop() {
   // put your main code here, to run repeatedly:
@@ -167,7 +167,7 @@ void loop() {
   if(packetSize){
     int len = udp.read(packetBuffer, 2);
     if (len > 0) {
-      packetBuffer[len] = 0;
+      udp.flush(); // flush the buffer before next loop (just in case)
     }
     // reset number of anchors that transmitted its range
     numRangeTransmitted = 0;
