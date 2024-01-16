@@ -13,6 +13,7 @@
 #define TAG1  // use this to select the tag
 // #define TAG2
 // #define TAG3
+#define TRANSMIT_WINDOW 100
 
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
@@ -73,6 +74,10 @@ WiFiUDP udp;
 /**** JSON variables ********/
 DynamicJsonDocument jsonDoc(192);
 JsonObject measurements = jsonDoc.createNestedObject("measurements");
+
+/**** For multitag ****/
+uint8_t numRangeTransmitted = 0; // number of times newRange() is called
+uint8_t numAnchors = 0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -140,17 +145,38 @@ void setup() {
   }
 
   Serial.println("Connected to WiFi");
+
+  // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
+  
+  // Call createJsonPackage to populate the JSON document
+  createJsonPackage(&jsonDoc, &measurements);
+  // Call transmitJsonPackage to send the UDP message
+  transmitJsonPackage(&jsonDoc, udp);
 }
 
 unsigned long lastTransmissionTime = 0;
 unsigned long lastDisplayTime = 0;
 
+// UDP read buffer
+char packetBuffer[2];
+
 void loop() {
   // put your main code here, to run repeatedly:
-  // get measurements
-  DW1000Ranging.loop();
+  // if there's data available, read then get measurements
+  int packetSize = udp.parsePacket();
+  if(packetSize){
+    int len = udp.read(packetBuffer, 2);
+    if (len > 0) {
+      packetBuffer[len] = 0;
+    }
+    // reset number of anchors that transmitted its range
+    numRangeTransmitted = 0;
+    // get measurements
+    unsigned long start_time = millis();
 
-  if(millis() - lastTransmissionTime > 100){
+    while(millis() - start_time < TRANSMIT_WINDOW || numRangeTransmitted != numAnchors) //NEED TO CHANGE THIS!
+      DW1000Ranging.loop();
+
     // Call createJsonPackage to populate the JSON document
     createJsonPackage(&jsonDoc, &measurements);
     
@@ -193,6 +219,8 @@ void newRange()
   uint16_t addr = DW1000Ranging.getDistantDevice()->getShortAddress();
   int index = addr & 0x07; //expect devices 1 to 7
   if (index > 0 && index < 5) {
+    // note down how many anchors has transmitted their range
+    numRangeTransmitted++;
     Serial.println(millis() - last_anchor_update[index - 1]); //prints ranging period in ms
     last_anchor_update[index - 1] = millis();  //(-1) => array index
     float range = DW1000Ranging.getDistantDevice()->getRange();
@@ -232,14 +260,15 @@ void newDevice(DW1000Device *device)
 {
   Serial.print("Device added: ");
   Serial.println(device->getShortAddress(), HEX);
+  numAnchors++;
 }
 
 void inactiveDevice(DW1000Device *device)
 {
   Serial.print("delete inactive device: ");
   Serial.println(device->getShortAddress(), HEX);
+  numAnchors--;
 }
-
 
 void createJsonPackage(DynamicJsonDocument *jsonDoc, JsonObject *measurements) {
   char macHexString[3];
