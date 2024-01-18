@@ -68,7 +68,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "DCS";
 const char* password = "701BA2887E";
-const char* udpServerIP = "192.168.0.4";
+const char* udpServerIP = "192.168.0.3";
 const int udpServerPort = 12345;
 WiFiUDP udp;
 /**** JSON variables ********/
@@ -212,7 +212,7 @@ void display_uwb()
 
 //newRange callback
 void newRange()
-{
+  {
   int i;
 
   //index of this anchor, expecting values 1 to 4
@@ -221,7 +221,7 @@ void newRange()
   if (index > 0 && index < 5) {
     // note down how many anchors has transmitted their range
     numRangeTransmitted++;
-    Serial.println(millis() - last_anchor_update[index - 1]); //prints ranging period in ms
+//    Serial.println(millis() - last_anchor_update[index - 1]); //prints ranging period in ms
     last_anchor_update[index - 1] = millis();  //(-1) => array index
     float range = DW1000Ranging.getDistantDevice()->getRange();
     last_anchor_distance[index - 1] = range;
@@ -258,15 +258,15 @@ void newRange()
 
 void newDevice(DW1000Device *device)
 {
-  Serial.print("Device added: ");
-  Serial.println(device->getShortAddress(), HEX);
+//  Serial.print("Device added: ");
+//  Serial.println(device->getShortAddress(), HEX);
   numAnchors++;
 }
 
 void inactiveDevice(DW1000Device *device)
 {
-  Serial.print("delete inactive device: ");
-  Serial.println(device->getShortAddress(), HEX);
+//  Serial.print("delete inactive device: ");
+//  Serial.println(device->getShortAddress(), HEX);
   numAnchors--;
 }
 

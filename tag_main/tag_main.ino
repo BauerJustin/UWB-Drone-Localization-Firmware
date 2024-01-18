@@ -67,11 +67,11 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "DCS";
 const char* password = "701BA2887E";
-const char* udpServerIP = "192.168.0.4";
+const char* udpServerIP = "192.168.0.3";
 const int udpServerPort = 12345;
 WiFiUDP udp;
 /**** JSON variables ********/
-DynamicJsonDocument jsonDoc(192);
+DynamicJsonDocument jsonDoc(256);
 JsonObject measurements = jsonDoc.createNestedObject("measurements");
 
 void setup() {
@@ -104,8 +104,6 @@ void setup() {
   DW1000Ranging.attachNewDevice(newDevice);
   DW1000Ranging.attachInactiveDevice(inactiveDevice);
 
-  // Setup jsonDoc
-  DynamicJsonDocument jsonDoc(192);
   // start as tag, do not assign random short address
   //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
   //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_SHORTDATA_FAST_LOWPOWER, false);  // range 7 m  smart power 10 m
@@ -193,7 +191,7 @@ void newRange()
   uint16_t addr = DW1000Ranging.getDistantDevice()->getShortAddress();
   int index = addr & 0x07; //expect devices 1 to 7
   if (index > 0 && index < 5) {
-    Serial.println(millis() - last_anchor_update[index - 1]); //prints ranging period in ms
+    // Serial.println(millis() - last_anchor_update[index - 1]); //prints ranging period in ms
     last_anchor_update[index - 1] = millis();  //(-1) => array index
     float range = DW1000Ranging.getDistantDevice()->getRange();
     last_anchor_distance[index - 1] = range;
@@ -230,14 +228,14 @@ void newRange()
 
 void newDevice(DW1000Device *device)
 {
-  Serial.print("Device added: ");
-  Serial.println(device->getShortAddress(), HEX);
+//  Serial.print("Device added: ");
+//  Serial.println(device->getShortAddress(), HEX);
 }
 
 void inactiveDevice(DW1000Device *device)
 {
-  Serial.print("delete inactive device: ");
-  Serial.println(device->getShortAddress(), HEX);
+//  Serial.print("delete inactive device: ");
+//  Serial.println(device->getShortAddress(), HEX);
 }
 
 
