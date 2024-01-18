@@ -68,7 +68,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "DCS";
 const char* password = "701BA2887E";
-const char* udpServerIP = "192.168.0.3";
+const char* udpServerIP = "192.168.0.5";
 const int udpServerPort = 12345;
 WiFiUDP udp;
 /**** JSON variables ********/
@@ -109,8 +109,6 @@ void setup() {
   DW1000Ranging.attachNewDevice(newDevice);
   DW1000Ranging.attachInactiveDevice(inactiveDevice);
 
-  // Setup jsonDoc
-  DynamicJsonDocument jsonDoc(192);
   // start as tag, do not assign random short address
   //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
   //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_SHORTDATA_FAST_LOWPOWER, false);  // range 7 m  smart power 10 m
