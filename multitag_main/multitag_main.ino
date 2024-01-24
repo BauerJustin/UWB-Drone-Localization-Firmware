@@ -14,7 +14,7 @@
 // #define TAG2
 // #define TAG3
 #define TRANSMIT_WINDOW 100
-
+#define TCP_CONNECTION_RETRY 3
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
 #define SPI_MISO 19
@@ -68,9 +68,10 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "DCS";
 const char* password = "701BA2887E";
-const char* udpServerIP = "192.168.0.5";
-const int udpServerPort = 12345;
+const char* serverIP = "192.168.0.5";
+const int serverPort = 12345;
 WiFiUDP udp;
+WiFiClient client;
 /**** JSON variables ********/
 DynamicJsonDocument jsonDoc(192);
 JsonObject measurements = jsonDoc.createNestedObject("measurements");
@@ -139,17 +140,22 @@ void setup() {
       return;
     }
     delay(1000);
-    Serial.println("Connecting to WiFi...");
+    Serial.print(".");
   }
 
   Serial.println("Connected to WiFi");
 
-  // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
-  
-  // Call createJsonPackage to populate the JSON document
-  createJsonPackage(&jsonDoc, &measurements);
-  // Call transmitJsonPackage to send the UDP message
-  transmitJsonPackage(&jsonDoc, udp);
+  // connect to tcp server
+  if(client.connect(serverIP, serverPort)){
+    Serial.println("Connected to TCP server");
+    // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
+    // Call createJsonPackage to populate the JSON document
+    createJsonPackage(&jsonDoc, &measurements);
+    // Call transmitJsonPackage to send the UDP message
+    transmitJsonPackage(&jsonDoc, client);
+  }else{
+    Serial.println("Cannot connect to TCP client");
+  }
 }
 
 unsigned long lastTransmissionTime = 0;
@@ -160,11 +166,11 @@ char packetBuffer[2] = "";
 
 // 1 to indicate that it can run ranging
 // 0 to not run ranging
-uint8 hasToken = 0;
+uint hasToken = 0;
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  
   // if parsePacket > 0, then we have token
 
   // run ranging if hasToken = 1
@@ -294,11 +300,17 @@ void createJsonPackage(DynamicJsonDocument *jsonDoc, JsonObject *measurements) {
   (*jsonDoc)["timestamp"] = float(millis() / 1000.0); // Using tag's timestamp
 }
 
-void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiUDP &udp) {
+void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiClient &client) {
   String jsonStr;
   serializeJson(*jsonDoc, jsonStr);
+  int i = 0;
+  while(!client.connected() && i > TCP_TRANSMISSION_RETRY){
+    i++;
+    Serial.println("TCP Server not connected, retrying...");
+    client.connect(serverIP, serverPort))
+  }
+  // send packet if connected
+  if (client.connected())
+    client.print(jsonStr);
   
-  udp.beginPacket(udpServerIP, udpServerPort);
-  udp.print(jsonStr);
-  udp.endPacket();
 }
