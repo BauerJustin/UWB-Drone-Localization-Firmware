@@ -19,7 +19,7 @@ def current_milli_time():
     return round(time.time() * 1000)
 
 # TCP Server Setup
-server_ip = "192.168.1.125" 
+server_ip = "192.168.1.115" 
 server_port = 12345
 
 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

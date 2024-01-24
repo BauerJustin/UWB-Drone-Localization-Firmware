@@ -10,8 +10,8 @@
 #include "DW1000.h"
 
 /******** SETTINGS *********/
-#define TAG1  // use this to select the tag
-// #define TAG2
+// #define TAG1  // use this to select the tag
+ #define TAG2
 // #define TAG3
 #define TRANSMIT_WINDOW 250 // in ms
 #define TCP_CONNECTION_RETRY 3
@@ -167,10 +167,6 @@ void setup() {
 unsigned long lastDisplayTime = 0;
 unsigned long tokenTime = 0;
 
-// 1 to indicate that it can run ranging
-// 0 to not run ranging
-uint8_t hasToken = 0;
-
 void loop() {
   // put your main code here, to run repeatedly:
   
@@ -181,7 +177,7 @@ void loop() {
     client.flush();
     // received the token
     hasToken = 1;
-    }
+    tokenTime = millis();
   }
 
   // run ranging if hasToken = 1  
@@ -279,10 +275,10 @@ void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiClient &client) {
   String jsonStr;
   serializeJson(*jsonDoc, jsonStr);
   int i = 0;
-  while(!client.connected() && i > TCP_TRANSMISSION_RETRY){
+  while(!client.connected() && i > TCP_CONNECTION_RETRY){
     i++;
     Serial.println("TCP Server not connected, retrying...");
-    client.connect(serverIP, serverPort))
+    client.connect(serverIP, serverPort);
   }
   // send packet if connected
   if (client.connected())
