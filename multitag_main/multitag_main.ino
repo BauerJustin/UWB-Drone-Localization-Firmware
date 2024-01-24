@@ -68,9 +68,8 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "PROTON";
 const char* password = "prot2001!";
-const char* udpServerIP = "192.168.1.115";
-const int udpServerPort = 12345;
-WiFiUDP udp;
+const char* serverIP = "192.168.1.115";
+const int serverPort = 12345;
 WiFiClient client;
 /**** JSON variables ********/
 DynamicJsonDocument jsonDoc(192);
@@ -168,31 +167,21 @@ void setup() {
 unsigned long lastDisplayTime = 0;
 unsigned long tokenTime = 0;
 
-// UDP read buffer
-char packetBuffer[2] = "";
-
 // 1 to indicate that it can run ranging
 // 0 to not run ranging
-uint hasToken = 0;
+uint8_t hasToken = 0;
 
 void loop() {
   // put your main code here, to run repeatedly:
   
-  // if parsePacket > 0, then we have token
-  int packetSize = udp.parsePacket();
-
-  if(packetSize)
+  // if there are data to read from
+  if(client.available())
   {
-    int len = udp.read(packetBuffer, 2);
-    if (len > 0) {
-      udp.flush(); // flush the buffer before next loop (just in case)
-    }
-
+    // clear RX buffer
+    client.flush();
+    // received the token
     hasToken = 1;
-    tokenTime = millis();
-
-    // reset number of anchors that transmitted its range
-    // numRangeTransmitted = 0;
+    }
   }
 
   // run ranging if hasToken = 1  
@@ -208,7 +197,7 @@ void loop() {
     createJsonPackage(&jsonDoc, &measurements);
     
     // Call transmitJsonPackage to send the UDP message
-    transmitJsonPackage(&jsonDoc, udp);
+    transmitJsonPackage(&jsonDoc, client);
     
     hasToken = 0; // release token after sending measurements
   }
