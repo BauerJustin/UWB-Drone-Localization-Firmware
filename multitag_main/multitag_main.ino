@@ -158,9 +158,18 @@ unsigned long lastDisplayTime = 0;
 // UDP read buffer
 char packetBuffer[2] = "";
 
+// 1 to indicate that it can run ranging
+// 0 to not run ranging
+uint8 hasToken = 0;
+
 void loop() {
   // put your main code here, to run repeatedly:
-  // if there's data available, read then get measurements
+
+  // if parsePacket > 0, then we have token
+
+  // run ranging if hasToken = 1
+
+  // send measurements if token has expired
   int packetSize = udp.parsePacket();
   if(packetSize){
     int len = udp.read(packetBuffer, 2);
