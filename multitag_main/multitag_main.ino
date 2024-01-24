@@ -66,9 +66,9 @@ float last_anchor_distance[N_ANCHORS] = {0.0}; //most recent distance reports
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /****** WIFI CONFIG ********/
-const char* ssid = "DCS";
-const char* password = "701BA2887E";
-const char* udpServerIP = "192.168.0.5";
+const char* ssid = "PROTON";
+const char* password = "prot2001!";
+const char* udpServerIP = "192.168.1.115";
 const int udpServerPort = 12345;
 WiFiUDP udp;
 /**** JSON variables ********/
@@ -189,7 +189,7 @@ void loop() {
     DW1000Ranging.loop();
   }
   
-  if (millis() - tokenTime > TRANSMIT_WINDOW) // can add numRangeTransmitted == numAnchors here later
+  if (millis() - tokenTime > TRANSMIT_WINDOW && hasToken) // can add numRangeTransmitted == numAnchors here later
   {
     // Call createJsonPackage to populate the JSON document
     createJsonPackage(&jsonDoc, &measurements);
@@ -240,32 +240,6 @@ void newRange()
     last_anchor_distance[index - 1] = range;
     last_anchor_addr[index - 1] = addr;
   }
-
-#ifdef DEBUG_ANCHOR_ID
-  Serial.print(index); //anchor ID, raw range
-  Serial.print(" ");;
-  Serial.println(range);
-#endif
-  //check for four measurements within the last interval
-  int detected = 0;  //count anchors recently seen
-
-  for (i = 0; i < N_ANCHORS; i++) {
-
-    if (millis() - last_anchor_update[i] > ANCHOR_DISTANCE_EXPIRED) last_anchor_update[i] = 0; //not from this one
-    if (last_anchor_update[i] > 0) detected++;
-  }
-  if ( (detected == N_ANCHORS)) { //four recent measurements
-
-#ifdef DEBUG_DISTANCES
-    // print distance and age of measurement
-    uint32_t current_time = millis();
-    for (i = 0; i < N_ANCHORS; i++) {
-      Serial.print(last_anchor_distance[i]);
-      Serial.print("\t");
-      Serial.println(current_time - last_anchor_update[i]); //age in millis
-    }
-#endif
-  }
 }  //end newRange
 
 void newDevice(DW1000Device *device)
@@ -306,4 +280,5 @@ void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiUDP &udp) {
   udp.beginPacket(udpServerIP, udpServerPort);
   udp.print(jsonStr);
   udp.endPacket();
+  udp.flush();
 }
