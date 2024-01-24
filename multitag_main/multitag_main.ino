@@ -13,7 +13,7 @@
 #define TAG1  // use this to select the tag
 // #define TAG2
 // #define TAG3
-#define TRANSMIT_WINDOW 100
+#define TRANSMIT_WINDOW 250 // in ms
 
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
@@ -78,6 +78,13 @@ JsonObject measurements = jsonDoc.createNestedObject("measurements");
 /**** For multitag ****/
 uint8_t numRangeTransmitted = 0; // number of times newRange() is called
 uint8_t numAnchors = 0;
+
+// UDP read buffer
+char packetBuffer[2] = "";
+
+// 1 to indicate that it can run ranging
+// 0 to not run ranging
+uint8_t hasToken = 0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -152,47 +159,47 @@ void setup() {
   transmitJsonPackage(&jsonDoc, udp);
 }
 
-unsigned long lastTransmissionTime = 0;
 unsigned long lastDisplayTime = 0;
-
-// UDP read buffer
-char packetBuffer[2] = "";
-
-// 1 to indicate that it can run ranging
-// 0 to not run ranging
-uint8 hasToken = 0;
+unsigned long tokenTime = 0;
 
 void loop() {
   // put your main code here, to run repeatedly:
 
   // if parsePacket > 0, then we have token
-
-  // run ranging if hasToken = 1
-
-  // send measurements if token has expired
   int packetSize = udp.parsePacket();
-  if(packetSize){
+
+  if(packetSize)
+  {
     int len = udp.read(packetBuffer, 2);
     if (len > 0) {
       udp.flush(); // flush the buffer before next loop (just in case)
     }
+
+    hasToken = 1;
+    tokenTime = millis();
+
     // reset number of anchors that transmitted its range
-    numRangeTransmitted = 0;
+    // numRangeTransmitted = 0;
+  }
+
+  // run ranging if hasToken = 1  
+  if (hasToken)
+  {
     // get measurements
-    unsigned long start_time = millis();
-
-    while(millis() - start_time < TRANSMIT_WINDOW || numRangeTransmitted != numAnchors) //NEED TO CHANGE THIS!
-      DW1000Ranging.loop();
-
+    DW1000Ranging.loop();
+  }
+  
+  if (millis() - tokenTime > TRANSMIT_WINDOW) // can add numRangeTransmitted == numAnchors here later
+  {
     // Call createJsonPackage to populate the JSON document
     createJsonPackage(&jsonDoc, &measurements);
     
     // Call transmitJsonPackage to send the UDP message
     transmitJsonPackage(&jsonDoc, udp);
     
-    lastTransmissionTime = millis();
+    hasToken = 0; // release token after sending measurements
   }
-  
+
   if ((millis() - lastDisplayTime) > 1000) // every 1 second
   {
       display_uwb();
@@ -219,7 +226,7 @@ void display_uwb()
 
 //newRange callback
 void newRange()
-  {
+{
   int i;
 
   //index of this anchor, expecting values 1 to 4
@@ -228,12 +235,10 @@ void newRange()
   if (index > 0 && index < 5) {
     // note down how many anchors has transmitted their range
     numRangeTransmitted++;
-//    Serial.println(millis() - last_anchor_update[index - 1]); //prints ranging period in ms
     last_anchor_update[index - 1] = millis();  //(-1) => array index
     float range = DW1000Ranging.getDistantDevice()->getRange();
     last_anchor_distance[index - 1] = range;
     last_anchor_addr[index - 1] = addr;
-    //if (range < 0.0 || range > 30.0) last_anchor_update[index - 1] = 0;  //sanity check, ignore this measurement
   }
 
 #ifdef DEBUG_ANCHOR_ID
