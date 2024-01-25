@@ -286,7 +286,6 @@ void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiClient &client) {
     client.print(jsonStr);
   
 }
-void(* resetFunc) (void) = 0;//declare reset function at address 0
 
 void sendMeasurements(DynamicJsonDocument *jsonDoc, JsonObject *measurements, WiFiClient &client){
   // Call createJsonPackage to populate the JSON document
@@ -301,11 +300,5 @@ inline void connectToServer(WiFiClient &client){
     Serial.println("TCP Server not connected, retrying...");
     client.connect(serverIP, serverPort);
     delay(100*i); // small delay to buffer the request
-  }
-
-  // restart if still not connected
-  if(!client.connected()){
-    Serial.println("Restarting tag. Server not found");
-    resetFunc();
   }
 }
