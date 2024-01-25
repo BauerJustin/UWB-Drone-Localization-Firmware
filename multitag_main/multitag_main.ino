@@ -10,8 +10,8 @@
 #include "DW1000.h"
 
 /******** SETTINGS *********/
-// #define TAG1  // use this to select the tag
- #define TAG2
+#define TAG1  // use this to select the tag
+// #define TAG2
 // #define TAG3
 #define TRANSMIT_WINDOW 250 // in ms
 #define TCP_CONNECTION_RETRY 10
@@ -66,9 +66,9 @@ float last_anchor_distance[N_ANCHORS] = {0.0}; //most recent distance reports
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /****** WIFI CONFIG ********/
-const char* ssid = "PROTON";
-const char* password = "prot2001!";
-const char* serverIP = "192.168.1.115";
+const char* ssid = "DCS";
+const char* password = "701BA2887E";
+const char* serverIP = "192.168.0.3";
 const int serverPort = 12345;
 WiFiClient client;
 /**** JSON variables ********/
@@ -300,7 +300,7 @@ inline void connectToServer(WiFiClient &client){
     i++;
     Serial.println("TCP Server not connected, retrying...");
     client.connect(serverIP, serverPort);
-    delay(10); // small delay to buffer the request
+    delay(100*i); // small delay to buffer the request
   }
 
   // restart if still not connected
