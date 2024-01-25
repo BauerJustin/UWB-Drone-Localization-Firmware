@@ -14,7 +14,7 @@
  #define TAG2
 // #define TAG3
 #define TRANSMIT_WINDOW 250 // in ms
-#define TCP_CONNECTION_RETRY 3
+#define TCP_CONNECTION_RETRY 10
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
 #define SPI_MISO 19
@@ -151,14 +151,12 @@ void setup() {
 
   Serial.println("Connected to WiFi");
 
+  connectToServer(client);
   // connect to tcp server
-  if(client.connect(serverIP, serverPort)){
+  if(client.connected()){
     Serial.println("Connected to TCP server");
     // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
-    // Call createJsonPackage to populate the JSON document
-    createJsonPackage(&jsonDoc, &measurements);
-    // Call transmitJsonPackage to send the UDP message
-    transmitJsonPackage(&jsonDoc, client);
+    sendMeasurements(&jsonDoc, &measurements, client);
   }else{
     Serial.println("Cannot connect to TCP client");
   }
@@ -169,7 +167,14 @@ unsigned long tokenTime = 0;
 
 void loop() {
   // put your main code here, to run repeatedly:
-  
+
+  // if connection was dropped, reconnect
+  if(!client.connected()){
+    connectToServer(client);
+    // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
+    sendMeasurements(&jsonDoc, &measurements, client);
+  }
+    
   // if there are data to read from
   if(client.available())
   {
@@ -275,13 +280,32 @@ void transmitJsonPackage(DynamicJsonDocument *jsonDoc, WiFiClient &client) {
   String jsonStr;
   serializeJson(*jsonDoc, jsonStr);
   int i = 0;
-  while(!client.connected() && i > TCP_CONNECTION_RETRY){
-    i++;
-    Serial.println("TCP Server not connected, retrying...");
-    client.connect(serverIP, serverPort);
-  }
+  
   // send packet if connected
   if (client.connected())
     client.print(jsonStr);
   
+}
+void(* resetFunc) (void) = 0;//declare reset function at address 0
+
+void sendMeasurements(DynamicJsonDocument *jsonDoc, JsonObject *measurements, WiFiClient &client){
+  // Call createJsonPackage to populate the JSON document
+  createJsonPackage(jsonDoc, measurements);
+  // Call transmitJsonPackage to send the message
+  transmitJsonPackage(jsonDoc, client);
+}
+inline void connectToServer(WiFiClient &client){
+  int i = 0;
+  while(!client.connected() && i < TCP_CONNECTION_RETRY){
+    i++;
+    Serial.println("TCP Server not connected, retrying...");
+    client.connect(serverIP, serverPort);
+    delay(10); // small delay to buffer the request
+  }
+
+  // restart if still not connected
+  if(!client.connected()){
+    Serial.println("Restarting tag. Server not found");
+    resetFunc();
+  }
 }
