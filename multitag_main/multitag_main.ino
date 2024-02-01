@@ -200,6 +200,8 @@ void loop() {
     // Call transmitJsonPackage to send the UDP message
     transmitJsonPackage(&jsonDoc, client);
     
+    clearMeasurements();
+    
     hasToken = 0; // release token after sending measurements
   }
 
@@ -300,5 +302,11 @@ inline void connectToServer(WiFiClient &client){
     Serial.println("TCP Server not connected, retrying...");
     client.connect(serverIP, serverPort);
     delay(100*i); // small delay to buffer the request
+  }
+}
+
+void clearMeasurements(){
+  for(int i = 0; i < N_ANCHORS; i++){
+    last_anchor_distance[i] = 0.0;
   }
 }
