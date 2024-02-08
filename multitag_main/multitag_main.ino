@@ -15,8 +15,6 @@
 // #define TAG3
 #define TRANSMIT_WINDOW 125 // in ms
 #define TCP_CONNECTION_RETRY 100
-
-#define NUMBER_OF_ANCHORS 4
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
 #define SPI_MISO 19
@@ -197,7 +195,7 @@ void loop() {
   }
   
   if (((millis() - tokenTime > TRANSMIT_WINDOW)
-    ||(numRangeTransmitted == NUMBER_OF_ANCHORS))
+    ||(numRangeTransmitted == N_ANCHORS))
     && hasToken)// can add numRangeTransmitted == numAnchors here later
   {
     // Call createJsonPackage to populate the JSON document
@@ -205,8 +203,6 @@ void loop() {
     
     // Call transmitJsonPackage to send the UDP message
     transmitJsonPackage(&jsonDoc, client);
-    
-    clearMeasurements();
     
     hasToken = 0; // release token after sending measurements
     numRangeTransmitted = 0;
@@ -309,11 +305,5 @@ inline void connectToServer(WiFiClient &client){
     Serial.println("TCP Server not connected, retrying...");
     client.connect(serverIP, serverPort);
     delay(100*i); // small delay to buffer the request
-  }
-}
-
-void clearMeasurements(){
-  for(int i = 0; i < N_ANCHORS; i++){
-    last_anchor_distance[i] = 0.0;
   }
 }
