@@ -13,8 +13,8 @@
 #define TAG1  // use this to select the tag
 // #define TAG2
 // #define TAG3
-#define TRANSMIT_WINDOW 250 // in ms
-#define TCP_CONNECTION_RETRY 10
+#define TRANSMIT_WINDOW 125 // in ms
+#define TCP_CONNECTION_RETRY 100
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
 #define SPI_MISO 19
@@ -68,7 +68,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "DCS";
 const char* password = "701BA2887E";
-const char* serverIP = "192.168.0.3";
+const char* serverIP = "192.168.0.4";
 const int serverPort = 12345;
 WiFiClient client;
 /**** JSON variables ********/
