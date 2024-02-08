@@ -15,6 +15,8 @@
 // #define TAG3
 #define TRANSMIT_WINDOW 125 // in ms
 #define TCP_CONNECTION_RETRY 100
+
+#define NUMBER_OF_ANCHORS 4
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
 #define SPI_MISO 19
@@ -155,6 +157,7 @@ void setup() {
   // connect to tcp server
   if(client.connected()){
     Serial.println("Connected to TCP server");
+    client.setNoDelay(true);
     // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
     sendMeasurements(&jsonDoc, &measurements, client);
   }else{
@@ -168,6 +171,7 @@ unsigned long tokenTime = 0;
 void loop() {
   // put your main code here, to run repeatedly:
 
+  client.setNoDelay(true);
   // if connection was dropped, reconnect
   if(!client.connected()){
     connectToServer(client);
@@ -192,7 +196,9 @@ void loop() {
     DW1000Ranging.loop();
   }
   
-  if (millis() - tokenTime > TRANSMIT_WINDOW && hasToken) // can add numRangeTransmitted == numAnchors here later
+  if (((millis() - tokenTime > TRANSMIT_WINDOW)
+    ||(numRangeTransmitted == NUMBER_OF_ANCHORS))
+    && hasToken)// can add numRangeTransmitted == numAnchors here later
   {
     // Call createJsonPackage to populate the JSON document
     createJsonPackage(&jsonDoc, &measurements);
@@ -203,6 +209,7 @@ void loop() {
     clearMeasurements();
     
     hasToken = 0; // release token after sending measurements
+    numRangeTransmitted = 0;
   }
 
   if ((millis() - lastDisplayTime) > 1000) // every 1 second
