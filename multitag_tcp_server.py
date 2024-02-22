@@ -1,6 +1,7 @@
 import socket
 import time
 import json
+import threading
 
 # Helper Functions
 def get_next_key(d, current_key):
@@ -18,22 +19,7 @@ def request_measurements(connection, message):
 def current_milli_time():
     return round(time.time() * 1000)
 
-# TCP Server Setup
-server_ip = "192.168.1.115" 
-server_port = 12345
-
-tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-tcp_socket.bind((server_ip, server_port))
-tcp_socket.listen(1)
-
-print(f"TCP server listening on {server_ip}:{server_port}")
-
-tag_address = {}
-start_time = 0
-previous_id = None
-
-while True:
-    connection, client_address = tcp_socket.accept()
+def handle_connection(connection, client_address, tag_address, lock):
     try:
         print(f"Connection from {client_address}")
 
@@ -44,28 +30,52 @@ while True:
                 id = data['id']
                 ip, port = client_address
 
-                if id not in tag_address.keys():
-                    print(f"New tag added. ID: {id} Address: {ip}:{port}")
-                    tag_address[id] = client_address
-                    if len(tag_address) == 1:
-                        request_measurements(connection, "1")
-                        start_time = current_milli_time()
-                        previous_id = id
-                else:
-                    print(f"Received {len(data)} bytes from {ip}:{port}")
-                    print(f"Data: {data}")
-                    if client_address != tag_address[id]:
+                with lock:
+                    if id not in tag_address.keys():
+                        print(f"New tag added. ID: {id} Address: {ip}:{port}")
                         tag_address[id] = client_address
-                    end_time = current_milli_time()
-                    time_taken = end_time - start_time
-                    print(f"Time taken (ms): {time_taken}")
-                    start_time = current_milli_time()
+                        if len(tag_address) == 1:
+                            request_measurements(connection, "1")
+                            start_time = current_milli_time()
+                            previous_id = id
+                    else:
+                        print(f"Received {len(data)} bytes from {ip}:{port}")
+                        print(f"Data: {data}")
+                        if client_address != tag_address[id]:
+                            tag_address[id] = client_address
+                        end_time = current_milli_time()
+                        time_taken = end_time - start_time
+                        print(f"Time taken (ms): {time_taken}")
+                        start_time = current_milli_time()
 
-                    next_id = get_next_key(tag_address, id)
-                    next_ip, next_port = tag_address[next_id]
-                    request_measurements(connection, "1")
-                    previous_id = next_id
+                        next_id = get_next_key(tag_address, id)
+                        next_ip, next_port = tag_address[next_id]
+                        request_measurements(connection, "1")
+                        previous_id = next_id
             else:
                 break
     finally:
         connection.close()
+
+# TCP Server Setup
+server_ip = "192.168.0.219" 
+server_port = 12345
+
+tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+tcp_socket.bind((server_ip, server_port))
+tcp_socket.listen(5)  # Listen for multiple connections
+
+print(f"TCP server listening on {server_ip}:{server_port}")
+
+tag_address = {}
+lock = threading.Lock()
+
+try:
+    while True:
+        connection, client_address = tcp_socket.accept()
+        client_thread = threading.Thread(target=handle_connection, args=(connection, client_address, tag_address, lock))
+        client_thread.start()
+except KeyboardInterrupt:
+    print("Server is shutting down.")
+finally:
+    tcp_socket.close()
