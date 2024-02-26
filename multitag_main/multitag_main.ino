@@ -11,9 +11,10 @@
 
 /******** SETTINGS *********/
 #define TAG1  // use this to select the tag
-// #define TAG2
-// #define TAG3
-#define TRANSMIT_WINDOW 125 // in ms
+//#define TAG2
+//#define TAG3
+#define TRANSMIT_WINDOW 125  // in ms
+#define RANGING_WINDOW  2000 // in ms
 #define TCP_CONNECTION_RETRY 100
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
@@ -48,6 +49,7 @@ const uint8_t PIN_SS = 21;   // spi select pin
 
 // variables for position determination
 #define N_ANCHORS 4   //THIS VERSION WORKS ONLY WITH 4 ANCHORS. May be generalized to 5 or more.
+#define RANGING_RETRIES 10
 #define ANCHOR_DISTANCE_EXPIRED 5000   //measurements older than this are ignore (milliseconds)
 
 uint32_t last_anchor_update[N_ANCHORS] = {0}; //millis() value last time anchor was seen
@@ -68,7 +70,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "DCS";
 const char* password = "701BA2887E";
-const char* serverIP = "192.168.0.4";
+const char* serverIP = "192.168.0.2";
 const int serverPort = 12345;
 WiFiClient client;
 /**** JSON variables ********/
@@ -78,6 +80,7 @@ JsonObject measurements = jsonDoc.createNestedObject("measurements");
 /**** For multitag ****/
 uint8_t numRangeTransmitted = 0; // number of times newRange() is called
 uint8_t numAnchors = 0;
+uint8_t rangingCount = 0;
 
 // UDP read buffer
 char packetBuffer[2] = "";
@@ -194,18 +197,35 @@ void loop() {
     DW1000Ranging.loop();
   }
   
-  if (((millis() - tokenTime > TRANSMIT_WINDOW)
+  if (rangingCount < RANGING_RETRIES)
+  {
+    if ((millis() - tokenTime > RANGING_WINDOW) && hasToken)
+    {
+      // Call createJsonPackage to populate the JSON document
+      createJsonPackage(&jsonDoc, &measurements);
+      
+      // Call transmitJsonPackage to send the UDP message
+      transmitJsonPackage(&jsonDoc, client);
+      
+      hasToken = 0; // release token after sending measurements
+      rangingCount++;
+    }
+  }
+  else
+  {
+    if (((millis() - tokenTime > TRANSMIT_WINDOW)
     ||(numRangeTransmitted == N_ANCHORS))
     && hasToken)// can add numRangeTransmitted == numAnchors here later
-  {
-    // Call createJsonPackage to populate the JSON document
-    createJsonPackage(&jsonDoc, &measurements);
-    
-    // Call transmitJsonPackage to send the UDP message
-    transmitJsonPackage(&jsonDoc, client);
-    
-    hasToken = 0; // release token after sending measurements
-    numRangeTransmitted = 0;
+    {
+      // Call createJsonPackage to populate the JSON document
+      createJsonPackage(&jsonDoc, &measurements);
+      
+      // Call transmitJsonPackage to send the UDP message
+      transmitJsonPackage(&jsonDoc, client);
+      
+      hasToken = 0; // release token after sending measurements
+      numRangeTransmitted = 0;
+    }
   }
 
   if ((millis() - lastDisplayTime) > 1000) // every 1 second
