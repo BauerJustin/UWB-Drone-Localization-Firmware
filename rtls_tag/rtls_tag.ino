@@ -6,13 +6,18 @@
 #include <WiFiUdp.h>
 #include <ArduinoJson.h>
 
-#include "DW1000Ranging.h"
-#include "DW1000.h"
+
+#include <DW1000Ng.hpp>
+#include <DW1000NgUtils.hpp>
+#include <DW1000NgTime.hpp>
+#include <DW1000NgConstants.hpp>
+#include <DW1000NgRanging.hpp>
+#include <DW1000NgRTLS.hpp>
 
 /******** SETTINGS *********/
-// #define TAG1  // use this to select the tag
+#define TAG1  // use this to select the tag
 // #define TAG2
-#define TAG3
+// #define TAG3
 #define TRANSMIT_WINDOW 125 // in ms
 #define TCP_CONNECTION_RETRY 100
 /******** PIN DEFINITIONS *************/
@@ -33,18 +38,56 @@ const uint8_t PIN_SS = 21;   // spi select pin
 
 #ifdef TAG1
     // For TAG1 use addr 7D
-    char tag_addr[] = "7D:00:22:EA:82:60:3B:9C";
+    const char EUI[] = "AA:BB:CC:DD:EE:FF:00:00";
 #endif
 
 #ifdef TAG2
     // For TAG2 use addr 7E
-    char tag_addr[] = "7E:00:22:EA:82:60:3B:9C";
+    const char EUI[] = "7E:00:22:EA:82:60:3B:9C";
 #endif
 
 #ifdef TAG3
     // For TAG3 use addr 7F
-    char tag_addr[] = "7F:00:22:EA:82:60:3B:9C";
+    const char EUI[] = "7F:00:22:EA:82:60:3B:9C";
 #endif
+
+volatile uint32_t blink_rate = 200;
+
+device_configuration_t DEFAULT_CONFIG = {
+    false,
+    true,
+    true,
+    true,
+    false,
+    SFDMode::STANDARD_SFD,
+    Channel::CHANNEL_5,
+    DataRate::RATE_850KBPS,
+    PulseFrequency::FREQ_16MHZ,
+    PreambleLength::LEN_256,
+    PreambleCode::CODE_3
+};
+
+frame_filtering_configuration_t TAG_FRAME_FILTER_CONFIG = {
+    false,
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false
+};
+
+sleep_configuration_t SLEEP_CONFIG = {
+    false,  // onWakeUpRunADC   reg 0x2C:00
+    false,  // onWakeUpReceive
+    false,  // onWakeUpLoadEUI
+    true,   // onWakeUpLoadL64Param
+    true,   // preserveSleep
+    true,   // enableSLP    reg 0x2C:06
+    false,  // enableWakePIN
+    true    // enableWakeSPI
+};
 
 // variables for position determination
 #define N_ANCHORS 4   //THIS VERSION WORKS ONLY WITH 4 ANCHORS. May be generalized to 5 or more.
@@ -79,7 +122,7 @@ JsonObject measurements = jsonDoc.createNestedObject("measurements");
 uint8_t numRangeTransmitted = 0; // number of times newRange() is called
 uint8_t numAnchors = 0;
 
-// UDP read buffer
+// TCP read buffer
 char packetBuffer[2] = "";
 
 // 1 to indicate that it can run ranging
@@ -109,31 +152,37 @@ void setup() {
 
   //initialize configuration
   SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
-  DW1000Ranging.initCommunication(PIN_RST, PIN_SS, PIN_IRQ); //Reset, CS, IRQ pin
+  DW1000Ng::initializeNoInterrupt(PIN_SS, PIN_RST);
+  Serial.println("DW1000Ng initialized ...");
 
-  //set callbacks
-  DW1000Ranging.attachNewRange(newRange);
-  DW1000Ranging.attachNewDevice(newDevice);
-  DW1000Ranging.attachInactiveDevice(inactiveDevice);
-
-  // start as tag, do not assign random short address
-  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_LOWPOWER, false);
-  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_SHORTDATA_FAST_LOWPOWER, false);  // range 7 m  smart power 10 m
-  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_FAST_LOWPOWER, false);  // 6.5 m
-  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_SHORTDATA_FAST_ACCURACY, false);  // 5 m, smart power 5 m
-  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_FAST_ACCURACY, false);  // 5 m
-  //  DW1000Ranging.startAsTag(tag_addr, DW1000.MODE_LONGDATA_RANGE_ACCURACY, false);  // 5 m
-  /*
-    The following modes are pre-configured and one of them needs to be chosen:
-    - `MODE_LONGDATA_RANGE_LOWPOWER` (basically this is 110 kb/s data rate, 16 MHz PRF and long preambles)
-    - `MODE_SHORTDATA_FAST_LOWPOWER` (basically this is 6.8 Mb/s data rate, 16 MHz PRF and short preambles)
-    - `MODE_LONGDATA_FAST_LOWPOWER` (basically this is 6.8 Mb/s data rate, 16 MHz PRF and long preambles)
-    - `MODE_SHORTDATA_FAST_ACCURACY` (basically this is 6.8 Mb/s data rate, 64 MHz PRF and short preambles)
-    - `MODE_LONGDATA_FAST_ACCURACY` (basically this is 6.8 Mb/s data rate, 64 MHz PRF and long preambles)
-    - `MODE_LONGDATA_RANGE_ACCURACY` (basically this is 110 kb/s data rate, 64 MHz PRF and long preambles)
-  */
-  //   DW1000Class::useSmartPower(true); //enable higher power for short messages
+  // general configuration
+  DW1000Ng::applyConfiguration(DEFAULT_CONFIG);
+  DW1000Ng::enableFrameFiltering(TAG_FRAME_FILTER_CONFIG);
   
+  DW1000Ng::setEUI(EUI);
+
+  DW1000Ng::setNetworkId(RTLS_APP_ID);
+
+  DW1000Ng::setAntennaDelay(16436);
+
+  DW1000Ng::applySleepConfiguration(SLEEP_CONFIG);
+
+  DW1000Ng::setPreambleDetectionTimeout(15);
+  DW1000Ng::setSfdDetectionTimeout(273);
+  DW1000Ng::setReceiveFrameWaitTimeoutPeriod(2000);
+  
+  Serial.println(F("Committed configuration ..."));
+  // DEBUG chip info and registers pretty printed
+  char msg[128];
+  DW1000Ng::getPrintableDeviceIdentifier(msg);
+  Serial.print("Device ID: "); Serial.println(msg);
+  DW1000Ng::getPrintableExtendedUniqueIdentifier(msg);
+  Serial.print("Unique ID: "); Serial.println(msg);
+  DW1000Ng::getPrintableNetworkIdAndShortAddress(msg);
+  Serial.print("Network ID & Device Address: "); Serial.println(msg);
+  DW1000Ng::getPrintableDeviceMode(msg);
+  Serial.print("Device mode: "); Serial.println(msg);    
+
   // Start Wifi
   long int wifiStartTime = millis();
 
@@ -169,48 +218,56 @@ unsigned int transmit_window = 0;
 void loop() {
   // put your main code here, to run repeatedly:
 
-  client.setNoDelay(true);
-  // if connection was dropped, reconnect
-  if(!client.connected()){
-    connectToServer(client);
-    // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
-    sendMeasurements(&jsonDoc, &measurements, client);
-  }
+  DW1000Ng::deepSleep();
+  delay(blink_rate);
+  DW1000Ng::spiWakeup();
+  DW1000Ng::setEUI(EUI);
+  RangeInfrastructureResult res = DW1000NgRTLS::tagTwrLocalize(1500);
+    if(res.success)
+        blink_rate = res.new_blink_rate;
 
-  // if there are data to read from
-  if(client.available())
-  {
-    // clear RX buffer
-    client.flush();
-    // received the token
-    if (hasToken){
-      Serial.println("Warning: Already has token!!");
-    }
-    hasToken = 1;
-    tokenTime = millis();
-  }
+  // client.setNoDelay(true);
+  // // if connection was dropped, reconnect
+  // if(!client.connected()){
+  //   connectToServer(client);
+  //   // send initial packet to GCS. (doesn't matter what is sent, as only the IP and port is needed)
+  //   sendMeasurements(&jsonDoc, &measurements, client);
+  // }
 
-  // run ranging if hasToken = 1  
-  if (hasToken)
-  {
-    // get measurements
-    DW1000Ranging.loop();
-  }
+  // // if there are data to read from
+  // if(client.available())
+  // {
+  //   // clear RX buffer
+  //   client.flush();
+  //   // received the token
+  //   if (hasToken){
+  //     Serial.println("Warning: Already has token!!");
+  //   }
+  //   hasToken = 1;
+  //   tokenTime = millis();
+  // }
+
+  // // run ranging if hasToken = 1  
+  // if (hasToken)
+  // {
+  //   // get measurements
+  //   DW1000Ranging.loop();
+  // }
   
-  if (((millis() - tokenTime > TRANSMIT_WINDOW)
-    ||(numRangeTransmitted == N_ANCHORS))
-    && hasToken)// can add numRangeTransmitted == numAnchors here later
-  {
-    // Call createJsonPackage to populate the JSON document
-    createJsonPackage(&jsonDoc, &measurements);
+  // if (((millis() - tokenTime > TRANSMIT_WINDOW)
+  //   ||(numRangeTransmitted == N_ANCHORS))
+  //   && hasToken)// can add numRangeTransmitted == numAnchors here later
+  // {
+  //   // Call createJsonPackage to populate the JSON document
+  //   createJsonPackage(&jsonDoc, &measurements);
     
-    // Call transmitJsonPackage to send the UDP message
-    transmitJsonPackage(&jsonDoc, client);
+  //   // Call transmitJsonPackage to send the TCP message
+  //   transmitJsonPackage(&jsonDoc, client);
     
-    Serial.println(millis() - tokenTime);
-    hasToken = 0; // release token after sending measurements
-    numRangeTransmitted = 0;
-  }
+  //   Serial.println(millis() - tokenTime);
+  //   hasToken = 0; // release token after sending measurements
+  //   numRangeTransmitted = 0;
+  // }
 
   if ((millis() - lastDisplayTime) > 1000) // every 1 second
   {
@@ -278,7 +335,7 @@ void createJsonPackage(DynamicJsonDocument *jsonDoc, JsonObject *measurements) {
   }
   
   char id[3];
-  strncpy(id, tag_addr, 2);
+  strncpy(id, EUI, 2);
   id[2] = '\0'; // Null-terminate the string
   (*jsonDoc)["id"] = id;
 
