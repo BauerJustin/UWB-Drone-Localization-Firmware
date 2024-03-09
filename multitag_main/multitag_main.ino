@@ -11,9 +11,9 @@
 
 /******** SETTINGS *********/
 #define TAG1  // use this to select the tag
-// #define TAG2
-// #define TAG3
-#define TRANSMIT_WINDOW 125 // in ms
+//#define TAG2
+//#define TAG3
+#define TOKEN_TIMEOUT  2000 // in ms
 #define TCP_CONNECTION_RETRY 100
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18
@@ -68,7 +68,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "DCS";
 const char* password = "701BA2887E";
-const char* serverIP = "192.168.0.4";
+const char* serverIP = "192.168.0.2";
 const int serverPort = 12345;
 WiFiClient client;
 /**** JSON variables ********/
@@ -76,8 +76,9 @@ DynamicJsonDocument jsonDoc(192);
 JsonObject measurements = jsonDoc.createNestedObject("measurements");
 
 /**** For multitag ****/
-uint8_t numRangeTransmitted = 0; // number of times newRange() is called
+uint8_t numRangeTransmitted[N_ANCHORS] = {0}; // number of times newRange() is called
 uint8_t numAnchors = 0;
+uint8_t rangingCount = 0;
 
 // UDP read buffer
 char packetBuffer[2] = "";
@@ -193,10 +194,10 @@ void loop() {
     // get measurements
     DW1000Ranging.loop();
   }
-  
-  if (((millis() - tokenTime > TRANSMIT_WINDOW)
-    ||(numRangeTransmitted == N_ANCHORS))
-    && hasToken)// can add numRangeTransmitted == numAnchors here later
+
+  if (((millis() - tokenTime > TOKEN_TIMEOUT)
+  || (numRangeTransmitted[0] && numRangeTransmitted[1] && numRangeTransmitted[2] && numRangeTransmitted[3]))
+  && hasToken)// can add numRangeTransmitted == numAnchors here later
   {
     // Call createJsonPackage to populate the JSON document
     createJsonPackage(&jsonDoc, &measurements);
@@ -205,7 +206,7 @@ void loop() {
     transmitJsonPackage(&jsonDoc, client);
     
     hasToken = 0; // release token after sending measurements
-    numRangeTransmitted = 0;
+    memset(numRangeTransmitted, 0, sizeof(numRangeTransmitted)); //clear
   }
 
   if ((millis() - lastDisplayTime) > 1000) // every 1 second
@@ -242,7 +243,7 @@ void newRange()
   int index = addr & 0x07; //expect devices 1 to 7
   if (index > 0 && index < 5) {
     // note down how many anchors has transmitted their range
-    numRangeTransmitted++;
+    numRangeTransmitted[index - 1] = 1;
     last_anchor_update[index - 1] = millis();  //(-1) => array index
     float range = DW1000Ranging.getDistantDevice()->getRange();
     last_anchor_distance[index - 1] = range;

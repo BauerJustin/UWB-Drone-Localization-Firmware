@@ -265,10 +265,6 @@ boolean DW1000RangingClass::addNetworkDevices(DW1000Device* device) {
 	}
 	
 	if(addDevice) {
-		if(_type == ANCHOR) //for now let's start with 1 TAG
-		{
-			_networkDevicesNumber = 0;
-		}
 		memcpy(&_networkDevices[_networkDevicesNumber], device, sizeof(DW1000Device));
 		_networkDevices[_networkDevicesNumber].setIndex(_networkDevicesNumber);
 		_networkDevicesNumber++;
@@ -460,14 +456,10 @@ void DW1000RangingClass::loop() {
 			//we crate a new device with th tag
 			DW1000Device myTag(address, shortAddress);
 			
-			if(addNetworkDevices(&myTag)) {
-				if(_handleBlinkDevice != 0) {
-					(*_handleBlinkDevice)(&myTag);
-				}
-				//we reply by the transmit ranging init message
-				transmitRangingInit(&myTag);
-				noteActivity();
-			}
+			addNetworkDevices(&myTag);
+			//we reply by the transmit ranging init message
+			transmitRangingInit(&myTag);
+			noteActivity();
 			_expectedMsgId = POLL;
 		}
 		else if(messageType == RANGING_INIT && _type == TAG) {
@@ -628,7 +620,6 @@ void DW1000RangingClass::loop() {
 				if(messageType != _expectedMsgId) {
 					// unexpected message, start over again
 					//not needed ?
-					return;
 					_expectedMsgId = POLL_ACK;
 					return;
 				}
@@ -672,7 +663,6 @@ void DW1000RangingClass::loop() {
 				}
 				else if(messageType == RANGE_FAILED) {
 					//not needed as we have a timer;
-					return;
 					_expectedMsgId = POLL_ACK;
 				}
 			}
