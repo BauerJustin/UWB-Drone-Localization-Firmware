@@ -64,7 +64,7 @@
 
 //default timer delay
 #define DEFAULT_TIMER_DELAY 40
-
+#define DEBUG true
 //debug mode
 #ifndef DEBUG
 #define DEBUG false

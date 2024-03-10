@@ -381,8 +381,12 @@ void DW1000RangingClass::loop() {
 		// TODO cc
 		int messageType = detectMessageType(data);
 		
-		if(messageType != POLL_ACK && messageType != POLL && messageType != RANGE)
-			return;
+		if(messageType != POLL_ACK && messageType != POLL && messageType != RANGE){
+			Serial.print("unexpected message: ");
+			Serial.println(messageType);
+			return;	
+		}
+		
 		
 		//A msg was sent. We launch the ranging protocole when a message was sent
 		if(_type == ANCHOR) {
@@ -508,6 +512,11 @@ void DW1000RangingClass::loop() {
 				if(messageType != _expectedMsgId) {
 					// unexpected message, start over again (except if already POLL)
 					_protocolFailed = true;
+					if(DEBUG) {
+						Serial.print("Protocol failed: ");
+						Serial.println(messageType);
+						Serial.println(_expectedMsgId);
+					}
 				}
 				if(messageType == POLL) {
 					//we receive a POLL which is a broacast message
@@ -604,6 +613,10 @@ void DW1000RangingClass::loop() {
 							}
 							else {
 								transmitRangeFailed(myDistantDevice);
+								Serial.println("Protocol failed - range failed");
+								// print out message type
+								Serial.println(messageType);
+
 							}
 							
 							
@@ -620,7 +633,13 @@ void DW1000RangingClass::loop() {
 				if(messageType != _expectedMsgId) {
 					// unexpected message, start over again
 					//not needed ?
+					Serial.println("Protocol failed");
+					Serial.print("expected:");
+					Serial.println(_expectedMsgId);
+					Serial.print("received:");
+					Serial.println(messageType);
 					_expectedMsgId = POLL_ACK;
+					
 					return;
 				}
 				if(messageType == POLL_ACK) {
@@ -663,6 +682,7 @@ void DW1000RangingClass::loop() {
 				}
 				else if(messageType == RANGE_FAILED) {
 					//not needed as we have a timer;
+					Serial.println("Protocol failed - range failed");
 					_expectedMsgId = POLL_ACK;
 				}
 			}
