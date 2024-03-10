@@ -10,9 +10,9 @@
 #include "DW1000.h"
 
 /******** SETTINGS *********/
-#define TAG1  // use this to select the tag
+//#define TAG1  // use this to select the tag
 //#define TAG2
-//#define TAG3
+#define TAG3
 #define TOKEN_TIMEOUT  2000 // in ms
 #define TCP_CONNECTION_RETRY 100
 /******** PIN DEFINITIONS *************/

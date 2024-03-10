@@ -747,7 +747,7 @@ void DW1000RangingClass::timerTick() {
 			transmitBlink();
 		}
 		//check for inactive devices if we are a TAG or ANCHOR
-		checkForInactiveDevices();
+		//checkForInactiveDevices();
 	}
 	counterForBlink++;
 	if(counterForBlink > 20) {
@@ -955,24 +955,25 @@ void DW1000RangingClass::computeRangeAsymmetric(DW1000Device* myDistantDevice, D
 	DW1000Time round2 = (myDistantDevice->timeRangeReceived-myDistantDevice->timePollAckSent).wrap();
 	DW1000Time reply2 = (myDistantDevice->timeRangeSent-myDistantDevice->timePollAckReceived).wrap();
 	
-	myTOF->setTimestamp((round1*round2-reply1*reply2)/(round1+round2+reply1+reply2));
-	/*
-	Serial.print("timePollAckReceived ");myDistantDevice->timePollAckReceived.print();
-	Serial.print("timePollSent ");myDistantDevice->timePollSent.print();
-	Serial.print("round1 "); Serial.println((long)round1.getTimestamp());
+	// myTOF->setTimestamp((round1*round2-reply1*reply2)/(round1+round2+reply1+reply2));
+	myTOF->setTimestamp((round2-reply2) / 2.0);
+	// Serial.print("Device ");
+	// Serial.println(myDistantDevice->getShortAddress());
+	// Serial.print("timePollAckReceived ");myDistantDevice->timePollAckReceived.print();
+	// Serial.print("timePollSent ");myDistantDevice->timePollSent.print();
+	// Serial.print("round1 "); Serial.println((long)round1.getTimestamp());
 	
-	Serial.print("timePollAckSent ");myDistantDevice->timePollAckSent.print();
-	Serial.print("timePollReceived ");myDistantDevice->timePollReceived.print();
-	Serial.print("reply1 "); Serial.println((long)reply1.getTimestamp());
+	// Serial.print("timePollAckSent ");myDistantDevice->timePollAckSent.print();
+	// Serial.print("timePollReceived ");myDistantDevice->timePollReceived.print();
+	// Serial.print("reply1 "); Serial.println((long)reply1.getTimestamp());
 	
-	Serial.print("timeRangeReceived ");myDistantDevice->timeRangeReceived.print();
-	Serial.print("timePollAckSent ");myDistantDevice->timePollAckSent.print();
-	Serial.print("round2 "); Serial.println((long)round2.getTimestamp());
+	// Serial.print("timeRangeReceived ");myDistantDevice->timeRangeReceived.print();
+	// Serial.print("timePollAckSent ");myDistantDevice->timePollAckSent.print();
+	// Serial.print("round2 "); Serial.println((long)round2.getTimestamp());
 	
-	Serial.print("timeRangeSent ");myDistantDevice->timeRangeSent.print();
-	Serial.print("timePollAckReceived ");myDistantDevice->timePollAckReceived.print();
-	Serial.print("reply2 "); Serial.println((long)reply2.getTimestamp());
-	 */
+	// Serial.print("timeRangeSent ");myDistantDevice->timeRangeSent.print();
+	// Serial.print("timePollAckReceived ");myDistantDevice->timePollAckReceived.print();
+	// Serial.print("reply2 "); Serial.println((long)reply2.getTimestamp());
 }
 
 
