@@ -385,8 +385,6 @@ void DW1000RangingClass::loop() {
 			Serial.print("unexpected message: ");
 			Serial.println(messageType);
 			return;	
-		}
-		
 		
 		//A msg was sent. We launch the ranging protocole when a message was sent
 		if(_type == ANCHOR) {
@@ -406,6 +404,10 @@ void DW1000RangingClass::loop() {
 				if(_lastSentToShortAddress[0] == 0xFF && _lastSentToShortAddress[1] == 0xFF) {
 					//we save the value for all the devices !
 					for(uint16_t i = 0; i < _networkDevicesNumber; i++) {
+						Serial.print("timePollSent: ");
+						Serial.println(timePollSent);
+						Serial.print("Device: ");
+						Serial.println(_networkDevices[i].getShortAddress());
 						_networkDevices[i].timePollSent = timePollSent;
 					}
 				}
@@ -955,8 +957,8 @@ void DW1000RangingClass::computeRangeAsymmetric(DW1000Device* myDistantDevice, D
 	DW1000Time round2 = (myDistantDevice->timeRangeReceived-myDistantDevice->timePollAckSent).wrap();
 	DW1000Time reply2 = (myDistantDevice->timeRangeSent-myDistantDevice->timePollAckReceived).wrap();
 	
-	// myTOF->setTimestamp((round1*round2-reply1*reply2)/(round1+round2+reply1+reply2));
-	myTOF->setTimestamp((round2-reply2) / 2.0);
+	myTOF->setTimestamp((round1*round2-reply1*reply2)/(round1+round2+reply1+reply2));
+	//myTOF->setTimestamp((round2-reply2) / 2.0);
 	// Serial.print("Device ");
 	// Serial.println(myDistantDevice->getShortAddress());
 	// Serial.print("timePollAckReceived ");myDistantDevice->timePollAckReceived.print();
@@ -974,6 +976,7 @@ void DW1000RangingClass::computeRangeAsymmetric(DW1000Device* myDistantDevice, D
 	// Serial.print("timeRangeSent ");myDistantDevice->timeRangeSent.print();
 	// Serial.print("timePollAckReceived ");myDistantDevice->timePollAckReceived.print();
 	// Serial.print("reply2 "); Serial.println((long)reply2.getTimestamp());
+	
 }
 
 

@@ -16,7 +16,7 @@ uint16_t Adelay = 16599; //library default is 16384
 
 // previously determined calibration results for antenna delay
 // #1 16599
-// #2 16595
+// #2 16595 / 16170
 // #3 16588
 // #4 16548
 

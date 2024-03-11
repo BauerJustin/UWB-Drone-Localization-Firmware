@@ -10,9 +10,9 @@
 #include "DW1000.h"
 
 /******** SETTINGS *********/
-#define TAG1  // use this to select the tag
+//#define TAG1  // use this to select the tag
 // #define TAG2
-// #define TAG3
+#define TAG3
 
 /******** PIN DEFINITIONS *************/
 #define SPI_SCK 18

@@ -186,6 +186,7 @@ void loop() {
     // received the token
     hasToken = 1;
     tokenTime = millis();
+    //transmitBlink();
   }
 
   // run ranging if hasToken = 1  
