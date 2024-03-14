@@ -385,7 +385,7 @@ void DW1000RangingClass::loop() {
 			Serial.print("unexpected message: ");
 			Serial.println(messageType);
 			return;	
-		
+		}
 		//A msg was sent. We launch the ranging protocole when a message was sent
 		if(_type == ANCHOR) {
 			if(messageType == POLL_ACK) {
@@ -1000,5 +1000,9 @@ float DW1000RangingClass::filterValue(float value, float previousValue, uint16_t
 	return (value * k) + previousValue * (1.0f - k);
 }
 
-
-
+// resets receive ack, sent ack, and clear buffer
+void DW1000RangingClass::resetTagRXBuffer(){
+	_receivedAck = false;
+	_sentAck = false;
+	DW1000.getData(data, LEN_DATA);
+}

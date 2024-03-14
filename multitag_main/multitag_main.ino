@@ -186,7 +186,7 @@ void loop() {
     // received the token
     hasToken = 1;
     tokenTime = millis();
-    //transmitBlink();
+    DW1000Ranging.resetTagRXBuffer();
   }
 
   // run ranging if hasToken = 1  

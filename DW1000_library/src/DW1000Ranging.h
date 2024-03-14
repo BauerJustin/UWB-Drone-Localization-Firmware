@@ -38,7 +38,7 @@
 #define POLL 0
 #define POLL_ACK 1
 #define RANGE 2
-#define RANGE_REPORT 3
+#define RANGE_REPORT 3 
 #define RANGE_FAILED 255
 #define BLINK 4
 #define RANGING_INIT 5
@@ -122,6 +122,8 @@ public:
 	//FOR DEBUGGING
 	static void visualizeDatas(byte datas[]);
 	static void transmitBlink();
+
+	static void resetTagRXBuffer();
 
 
 private:
