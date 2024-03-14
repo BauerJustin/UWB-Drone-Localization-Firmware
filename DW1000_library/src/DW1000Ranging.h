@@ -125,6 +125,7 @@ public:
 
 	static void resetTagRXBuffer();
 
+	static void setNumAnchors(int16_t);
 
 private:
 	//other devices in the network
@@ -137,6 +138,8 @@ private:
 	static DW1000Mac    _globalMac;
 	static int32_t      timer;
 	static int16_t      counterForBlink;
+	static int16_t 		blinkLimit = 20;
+	static int16_t 		num_anchors = 4;
 	
 	//Handlers:
 	static void (* _handleNewRange)(void);

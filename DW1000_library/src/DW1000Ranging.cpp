@@ -748,13 +748,22 @@ void DW1000RangingClass::timerTick() {
 		if(_type == TAG) {
 			transmitBlink();
 		}
-		//check for inactive devices if we are a TAG or ANCHOR
-		//checkForInactiveDevices();
+		//check for inactive devices if we are a TAG
+		if(_type == TAG){
+			checkForInactiveDevices();
+		}
 	}
 	counterForBlink++;
-	if(counterForBlink > 20) {
+	if(counterForBlink > blinkLimit) {
 		counterForBlink = 0;
+		if(_networkDevices < num_anchors){
+			blinkLimit = 3;
+		}else{
+			blinkLimit = 100;
+		}
 	}
+
+	
 }
 
 
@@ -1005,4 +1014,8 @@ void DW1000RangingClass::resetTagRXBuffer(){
 	_receivedAck = false;
 	_sentAck = false;
 	DW1000.getData(data, LEN_DATA);
+}
+
+void DW1000RangingClass::setNumAnchors(int16_t val){
+	num_anchors = val;
 }

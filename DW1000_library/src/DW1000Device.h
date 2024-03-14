@@ -22,7 +22,7 @@
  */
 
 
-#define INACTIVITY_TIME 1000
+#define INACTIVITY_TIME 5000
 
 #ifndef _DW1000Device_H_INCLUDED
 #define _DW1000Device_H_INCLUDED
