@@ -13,7 +13,6 @@
 #define TAG1  // use this to select the tag
 //#define TAG2
 //#define TAG3
-#define MIN_TIMEOUT    250 // in ms
 #define TOKEN_TIMEOUT  2000 // in ms
 #define TCP_CONNECTION_RETRY 100
 /******** PIN DEFINITIONS *************/
@@ -197,10 +196,9 @@ void loop() {
     DW1000Ranging.loop();
   }
 
-  // Token time will be 250 ms < T < 2000 ms, bounded dynamic solution
+  // Token will be held at most for 2 seconds
   if (((millis() - tokenTime > TOKEN_TIMEOUT)
-  || ((numRangeTransmitted[0] && numRangeTransmitted[1] && numRangeTransmitted[2] && numRangeTransmitted[3]) 
-  && (millis() - tokenTime > MIN_TIMEOUT)))
+  || (numRangeTransmitted[0] && numRangeTransmitted[1] && numRangeTransmitted[2] && numRangeTransmitted[3]))
   && hasToken)
   {
     // Call createJsonPackage to populate the JSON document
