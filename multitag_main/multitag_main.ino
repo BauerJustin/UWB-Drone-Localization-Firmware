@@ -10,9 +10,9 @@
 #include "DW1000.h"
 
 /******** SETTINGS *********/
-//#define TAG1  // use this to select the tag
+#define TAG1  // use this to select the tag
 //#define TAG2
-#define TAG3
+//#define TAG3
 #define TOKEN_TIMEOUT  2000 // in ms
 #define TCP_CONNECTION_RETRY 100
 /******** PIN DEFINITIONS *************/
@@ -68,7 +68,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 /****** WIFI CONFIG ********/
 const char* ssid = "DCS";
 const char* password = "701BA2887E";
-const char* serverIP = "192.168.0.2";
+const char* serverIP = "192.168.0.3";
 const int serverPort = 12345;
 WiFiClient client;
 /**** JSON variables ********/
@@ -196,9 +196,10 @@ void loop() {
     DW1000Ranging.loop();
   }
 
+  // Token will be held at most for 2 seconds
   if (((millis() - tokenTime > TOKEN_TIMEOUT)
   || (numRangeTransmitted[0] && numRangeTransmitted[1] && numRangeTransmitted[2] && numRangeTransmitted[3]))
-  && hasToken)// can add numRangeTransmitted == numAnchors here later
+  && hasToken)
   {
     // Call createJsonPackage to populate the JSON document
     createJsonPackage(&jsonDoc, &measurements);
